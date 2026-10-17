@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph TRUCK["Refrigerated truck - operates fully offline"]
+    direction LR
+    subgraph SENS["Sensors"]
+      T["Temperature probe<br/>1 Hz"]
+      V["3-axis accelerometer<br/>500 Hz, compressor"]
+      D["Door switch<br/>OPEN / CLOSE events"]
+    end
+    subgraph EDGE["Edge node (hardware chosen in Step 3)"]
+      direction TB
+      B["Local Mosquitto broker<br/>localhost:1883"]
+      subgraph C["Docker container: inference service"]
+        direction TB
+        P["Preprocessing<br/>5-sample MA, 30 s window / 10 s step,<br/>6 features, normalise"]
+        M["TFLite INT8 MLP<br/>Class 0 / 1 / 2"]
+        P --> M
+      end
+      L[("Local alert log<br/>persistent store-and-forward queue")]
+      U["Uplink agent<br/>TLS, QoS 1"]
+      B -->|"sensor topics"| P
+      M -->|"inference result"| B
+      M -->|"Warning / Critical alert"| L
+      L --> U
+    end
+    T -->|"temperature 1 Hz"| B
+    V -->|"vibration"| B
+    D -->|"door events"| B
+  end
+  U -.->|"cellular uplink, intermittent<br/>batched alerts on reconnect"| API
+  subgraph OPS["Operations centre backend"]
+    API["Alert ingestion API"]
+    DB[("Alert database")]
+    DASH["Dashboard and notifications"]
+    API --> DB
+    API --> DASH
+  end
