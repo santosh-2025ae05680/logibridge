@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TB
   subgraph TRUCK["Refrigerated truck - operates fully offline"]
     direction LR
     subgraph SENS["Sensors"]
@@ -6,7 +6,7 @@ flowchart LR
       V["3-axis accelerometer<br/>500 Hz, compressor"]
       D["Door switch<br/>OPEN / CLOSE events"]
     end
-    subgraph EDGE["Edge node (hardware chosen in Step 3)"]
+    subgraph EDGE["Edge node: Raspberry Pi 5 (8 GB) + AI HAT+"]
       direction TB
       B["Local Mosquitto broker<br/>localhost:1883"]
       subgraph C["Docker container: inference service"]

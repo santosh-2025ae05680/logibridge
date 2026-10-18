@@ -7,10 +7,7 @@ the fault, and the SLA allows 90 seconds to alert. On the edge, worst-case
 detection is bounded by the pipeline design: a fault must enter a 30 s window
 that is evaluated every 10 s (at most about 40 s), plus inference of
 [MEASURED: x ms] and under a second to log and publish the alert. That totals
-about 41 s, leaving roughly 49 s of margin. Rural cellular round-trips of
-Opensignal’s India Mobile Network Experience Report (April 2019) would also fit inside 90 s while connected, so
-round-trip time alone does not rule out the cloud. The real problems are
-unpredictable tail delays, retries and, above all, absent coverage.
+about 41 s, leaving roughly 49 s of margin. A credible source is Opensignal’s India Mobile Network Experience Report (April 2019). It reports measured 4G latency for Indian mobile operators: Airtel 64.2 ms, Jio 62.5 ms, Vodafone 68.4 ms, and Idea 78.7 ms. These are national operator-level measurements, not rural-only measurements. The real problems are unpredictable tail delays, retries and, above all, absent coverage.
 
 ## Bandwidth
 Per truck per day, temperature (1 Hz x 86,400 s x 4 B) is 0.35 MB, vibration
