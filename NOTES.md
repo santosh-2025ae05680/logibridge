@@ -53,3 +53,12 @@
 - Service resets windowing on timestamp discontinuities (back > 5 s, or forward gap > 120 s).
 - Technical difficulty candidates for the report: tfmot vs Python 3.14 (distutils), tf_keras requirement, tflite-runtime 2.14.0 has no aarch64 / Python 3.11 wheel on PyPI (a Pi 5 target needs another runtime), bind mounts under /root with Docker Desktop.
 - OTA demo: v1.0 (INT8) -> v1.1 (FP32 model only): only the model layer is rebuilt and pushed; full image 120.65 MB compressed vs model layer 4.1 KB; 85 trucks: 10,255 MB (Rs 1,025.54) vs 0.35 MB (Rs 0.035); 29,164x less data (99.9966%).
+
+## Step 9 decisions (PSI drift monitor, E1)
+- Confidence score = P(Normal), not max-softmax: max-softmax is ~1.0 for every class on this separable data (Normal 0.995, Warning 1.000, Critical 0.999), so PSI on it cannot move. offline-check output is the evidence. TODO: confirm interpretation with the instructor.
+- Reference: 300 clean windows (seed 202) through the deployed INT8 model, saved with the model tag; the monitor warns if the running model differs.
+- PSI: 4 bins from the brief, eps=1e-4, last 100 inferences, evaluated every 60 s; alert > 0.25, recovered < 0.10.
+- Simulator gained --anomaly-until for clean -> anomaly -> clean runs.
+- Demo: speed 5 => 60 s wall-clock = 5 simulated minutes, so "within 5 minutes" holds in both frames.
+- Drift type for the report: covariate shift (the input distribution changed; the model's P(y|x) did not), detected through the output-score distribution. PSI cannot tell a genuine fault from sensor/calibration drift; in production an alert triggers review, not automatic retraining.
+- reference_dist.json is tied to the model file: Ansible (E2) must ship both together.

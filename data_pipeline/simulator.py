@@ -34,9 +34,10 @@ QOS_TEMP, QOS_VIB, QOS_DOOR, QOS_STATUS = 0, 0, 1, 1
 class SensorModel:
     """Generates sensor values. Contains no MQTT code, so it can be reused offline."""
 
-    def __init__(self, anomaly, anomaly_after, drift_cap, door_interval, rng):
+    def __init__(self, anomaly, anomaly_after, drift_cap, door_interval, rng, anomaly_until=0.0):
         self.anomaly = anomaly
         self.anomaly_after = anomaly_after
+        self.anomaly_until = anomaly_until      # 0 = the anomaly never ends
         self.drift_cap = drift_cap
         self.door_interval = door_interval
         self.rng = rng
@@ -45,7 +46,9 @@ class SensorModel:
         self.next_door_t = rng.expovariate(1.0 / door_interval)
 
     def anomaly_active(self, t):
-        return self.anomaly != "none" and t >= self.anomaly_after
+        if self.anomaly == "none" or t < self.anomaly_after:
+            return False
+        return not self.anomaly_until or t < self.anomaly_until
 
     def temperature(self, t):
         value = self.rng.gauss(SETPOINT_C, TEMP_SIGMA)
@@ -102,6 +105,8 @@ def parse_args():
                    help="time acceleration factor (1 = real time)")
     p.add_argument("--anomaly-after", type=float, default=0,
                    help="seconds of normal data before the anomaly starts")
+    p.add_argument("--anomaly-until", type=float, default=0,
+                   help="simulated second at which the anomaly ends (0 = never)")
     p.add_argument("--drift-cap", type=float, default=None,
                    help="optional cap on drift above setpoint, in C (default: none)")
     p.add_argument("--door-interval", type=float, default=300,
@@ -117,7 +122,7 @@ def parse_args():
 def main():
     args = parse_args()
     model = SensorModel(args.anomaly, args.anomaly_after, args.drift_cap,
-                        args.door_interval, random.Random(args.seed))
+                        args.door_interval, random.Random(args.seed), args.anomaly_until)
 
     base = f"{TOPIC_ROOT}/{args.truck_id}"
     topics = {
@@ -160,6 +165,7 @@ def main():
     wall0 = time.monotonic()
     counts = {"temperature": 0, "vibration": 0, "door": 0}
     announced = False
+    ended = False
     tick = 0
 
     while not stop["flag"]:
@@ -171,6 +177,9 @@ def main():
         if not announced and model.anomaly_active(t):
             print(f"*** anomaly '{args.anomaly}' started at t={t:.0f}s")
             announced = True
+        if announced and not ended and not model.anomaly_active(t):
+            print(f"*** anomaly ended at t={t:.0f}s: clean data restored")
+            ended = True
 
         temp = model.temperature(t)
         publish(client, topics["temperature"], {"ts": ts, "value": round(temp, 3)}, QOS_TEMP)
