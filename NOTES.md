@@ -38,3 +38,9 @@
 - Model: 6-32-16-3 MLP, ReLU, softmax; Adam 1e-3, batch 16, 60 epochs; 803 parameters.
 - Validation accuracy: [fill in]; Class 2 recall: [fill in]. Near-100% is expected because the simulated classes are trivially separable once features are clipped; kurtosis carries no class information (Gaussian noise).
 - Step 8 TODO: define "confidence" for PSI. Max-softmax stays ~1 for every class; P(Normal) separates clean from drifted data. Document the choice.
+
+## Step 7 decisions (conversion + shifted-stats experiment)
+- M1 = FP32 TFLite (training/models/mlp_fp32.tflite); M2 = full INT8 PTQ with int8 I/O, calibrated on the 228 training windows (>= 200 required).
+- Real model files are only a few KB; the OTA task (E3) specifies 280 KB, so state clearly which figure is used.
+- Experiment: stats +3 sigma gives z' = z - 3; stats -3 sigma gives z' = z + 3. Results in training/results/stats_shift_results.csv (use in the Phase 2 report).
+- training_stats.npy must ship with the model (bake into the image or copy in Ansible); never recompute at runtime.
