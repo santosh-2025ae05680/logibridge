@@ -124,7 +124,7 @@ def main():
         "temperature": f"{base}/sensors/temperature",
         "vibration": f"{base}/sensors/vibration_rms",
         "door": f"{base}/sensors/door",
-        "status": f"{base}/status",
+        "status": f"{base}/status/simulator",
     }
 
     client = make_client(args.truck_id)

@@ -20,7 +20,7 @@ flowchart LR
   S --> D["door (QoS 1)"]
   R --> I["inference (QoS 0)"]
   R --> A["alerts (QoS 1)"]
-  R --> ST["status (QoS 1, retained, Last Will)"]
+  R --> ST["status/{client} (QoS 1, retained, Last Will)"]
 ```
 
 ## 3. Topics, payloads and QoS
@@ -31,7 +31,7 @@ flowchart LR
 | sensors/door | simulator -> preprocessing | on event | 1 | no | {"ts":..., "state":"OPEN"} |
 | inference | inference service -> drift monitor | every 10 s | 0 | no | [proposed] ts, class, confidence, probs, latency_ms, model version |
 | alerts | inference service -> local alert log, uplink agent | on Warning/Critical | 1 | no | [proposed] alert_id, truck_id, ts, class, confidence |
-| status | every client -> any subscriber | on change | 1 | yes | {"state":"online"} or {"state":"offline"} |
+| status/{client} | each client (simulator, inference) -> any subscriber | on change | 1 | yes | {"state":"online"} or {"state":"offline"} |
 
 The truck ID is in the topic for sensor streams, so it is not repeated in each
 payload. Alerts leave the truck, so they carry truck_id themselves.

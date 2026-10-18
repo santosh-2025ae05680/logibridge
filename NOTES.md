@@ -44,3 +44,12 @@
 - Real model files are only a few KB; the OTA task (E3) specifies 280 KB, so state clearly which figure is used.
 - Experiment: stats +3 sigma gives z' = z - 3; stats -3 sigma gives z' = z + 3. Results in training/results/stats_shift_results.csv (use in the Phase 2 report).
 - training_stats.npy must ship with the model (bake into the image or copy in Ansible); never recompute at runtime.
+
+## Step 8 decisions (inference service + Docker, D2)
+- Build context = repo root with whitelist .dockerignore; Dockerfile order: pip layer, code, stats, ENV/CMD, model LAST.
+- Broker runs as a container (mosquitto on user network logibridge-net, published on 127.0.0.1 only); host mosquitto must stay stopped.
+- Per-client retained status topics: status/simulator and status/inference.
+- Alerts: on entering/escalating Warning or Critical, repeated every 60 s; QoS 1 + local JSONL log. The uplink agent to the ops centre is NOT implemented (architecture only).
+- Service resets windowing on timestamp discontinuities (back > 5 s, or forward gap > 120 s).
+- Technical difficulty candidates for the report: tfmot vs Python 3.14 (distutils), tf_keras requirement, tflite-runtime 2.14.0 has no aarch64 / Python 3.11 wheel on PyPI (a Pi 5 target needs another runtime), bind mounts under /root with Docker Desktop.
+- OTA demo: v1.0 (INT8) -> v1.1 (FP32 model only): only the model layer is rebuilt and pushed; figures from inference/ota_bandwidth.py: [fill in].
