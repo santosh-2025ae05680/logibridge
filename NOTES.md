@@ -36,7 +36,7 @@
 - Dataset generated in virtual time from SensorModel + the live preprocessing code (seeds 101/102/103; normalisation stats used seed 42).
 - Windows: Normal 117, Warning 87, Critical 87. Split by time: last 20% per class = validation, 2 windows purged between train and val (windows overlap by 20 s, so a random split would leak).
 - Model: 6-32-16-3 MLP, ReLU, softmax; Adam 1e-3, batch 16, 60 epochs; 803 parameters.
-- Validation accuracy: [fill in]; Class 2 recall: [fill in]. Near-100% is expected because the simulated classes are trivially separable once features are clipped; kurtosis carries no class information (Gaussian noise).
+- Validation accuracy: 100% (57 windows); Class 2 recall: 100%. Near-100% is expected because the simulated classes are trivially separable once features are clipped; kurtosis carries no class information (Gaussian noise).
 - Step 8 TODO: define "confidence" for PSI. Max-softmax stays ~1 for every class; P(Normal) separates clean from drifted data. Document the choice.
 
 ## Step 7 decisions (conversion + shifted-stats experiment)
@@ -52,4 +52,4 @@
 - Alerts: on entering/escalating Warning or Critical, repeated every 60 s; QoS 1 + local JSONL log. The uplink agent to the ops centre is NOT implemented (architecture only).
 - Service resets windowing on timestamp discontinuities (back > 5 s, or forward gap > 120 s).
 - Technical difficulty candidates for the report: tfmot vs Python 3.14 (distutils), tf_keras requirement, tflite-runtime 2.14.0 has no aarch64 / Python 3.11 wheel on PyPI (a Pi 5 target needs another runtime), bind mounts under /root with Docker Desktop.
-- OTA demo: v1.0 (INT8) -> v1.1 (FP32 model only): only the model layer is rebuilt and pushed; figures from inference/ota_bandwidth.py: [fill in].
+- OTA demo: v1.0 (INT8) -> v1.1 (FP32 model only): only the model layer is rebuilt and pushed; full image 120.65 MB compressed vs model layer 4.1 KB; 85 trucks: 10,255 MB (Rs 1,025.54) vs 0.35 MB (Rs 0.035); 29,164x less data (99.9966%).

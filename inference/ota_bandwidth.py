@@ -57,7 +57,7 @@ def main():
           f"  -> Rs {full / 1e6 * n * c:.2f}")
     print(f"Layer-cache OTA : {delta / 1e6:10.5f} MB/truck x {n} = {delta / 1e6 * n:10.4f} MB"
           f"  -> Rs {delta / 1e6 * n * c:.4f}")
-    print(f"Saving          : {100 * (1 - delta / full):.2f}%  ({full / max(delta, 1):,.0f}x less data)")
+    print(f"Saving          : {100 * (1 - delta / full):.4f}%  ({full / max(delta, 1):,.0f}x less data)")
 
 
 if __name__ == "__main__":
