@@ -89,6 +89,20 @@ def stage_prune():
     import tensorflow as tf
     import tensorflow_model_optimization as tfmot
 
+    # tfmot 0.8.0 bug: factorized_pool() ends with a bare tf.squeeze(), so a block that spans a
+    # whole weight column (our whole-neuron blocks) is squeezed from (1, N) to rank 1 and
+    # expand_tensor() then fails with "Input tensor must be rank 2". Keep the pooled result rank 2.
+    from tensorflow_model_optimization.python.core.sparsity.keras import pruning_utils
+    _orig_pool = pruning_utils.factorized_pool
+
+    def _pool_keep_rank2(input_tensor, window_shape, pooling_type, strides, padding, name=None):
+        out = _orig_pool(input_tensor, window_shape=window_shape, pooling_type=pooling_type,
+                         strides=strides, padding=padding, name=name)
+        h, w = input_tensor.shape
+        return tf.reshape(out, [-(-h // strides[0]), -(-w // strides[1])])
+
+    pruning_utils.factorized_pool = _pool_keep_rank2
+
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
     Xtr, ytr, Xva, yva = load_data()
