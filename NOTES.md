@@ -62,3 +62,11 @@
 - Demo: speed 5 => 60 s wall-clock = 5 simulated minutes, so "within 5 minutes" holds in both frames.
 - Drift type for the report: covariate shift (the input distribution changed; the model's P(y|x) did not), detected through the output-score distribution. PSI cannot tell a genuine fault from sensor/calibration drift; in production an alert triggers review, not automatic retraining.
 - reference_dist.json is tied to the model file: Ansible (E2) must ship both together.
+
+## Step 10 decisions (Ansible, E2)
+- 7 tasks exactly, local connection, gather_facts off. Stop task is conditional on model/reference change so run 2 reports changed=0 (ok=6 changed=0 skipped=1); the wait/verify task uses changed_when: false.
+- Image tags are immutable per release (docker_image pulls only if the tag is missing); a new tag makes docker_container recreate the container.
+- The service loads /opt/logibridge/model.tflite through a read-only bind mount (MODEL_PATH) so the model and reference_dist.json that Ansible ships together are the ones in use.
+- Prerequisites outside the playbook: logibridge-net, mosquitto container, registry with the image pushed.
+- Idempotency evidence: deployment/run1_output.txt and run2_output.txt (use in report section 5 and the video).
+- Ansible difficulty: docker_container state 'stopped' creates the container when it does not exist, so on a fresh host the stop task failed with "Cannot create container when image is not specified". Fixed with state 'absent' (stop if running, then remove; no-op if absent).

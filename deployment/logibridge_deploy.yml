@@ -1,0 +1,81 @@
+---
+# LogiEdge OTA deployment (Task E2): exactly 7 tasks.
+# Run from the repository root:
+#   ansible-playbook -i localhost, deployment/logibridge_deploy.yml
+# Prerequisites (outside this playbook): the Docker network, the Mosquitto container
+# and the local registry from Step 8, with the image already pushed.
+- name: Deploy the LogiEdge inference service to this edge node
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    install_dir: /opt/logibridge
+    container_name: logibridge-inference
+    registry: localhost:5000
+    image_name: logibridge-inference
+    image_tag: "1.0"              # bump for every release: tags are immutable
+    truck_id: TRUCK_001
+    mqtt_host: mosquitto
+    docker_network: logibridge-net
+
+  tasks:
+    - name: Create /opt/logibridge directory if not present
+      ansible.builtin.file:
+        path: "{{ install_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy new model file to /opt/logibridge/model.tflite
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../inference/model.tflite"
+        dest: "{{ install_dir }}/model.tflite"
+        mode: "0644"
+      register: model_file
+
+    - name: Copy updated reference_dist.json
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../monitoring/reference_dist.json"
+        dest: "{{ install_dir }}/reference_dist.json"
+        mode: "0644"
+      register: reference_file
+
+    # Only needed when the model or reference changed: the service reads them at start.
+    # A new image tag needs no explicit stop: the start task recreates the container.
+    # state 'absent' stops the container if it is running and then removes it. It is a
+    # no-op when the container does not exist; state 'stopped' would try to create it.
+    - name: Stop the running inference container if running
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      when: model_file.changed or reference_file.changed
+
+    - name: Pull updated container image from local Docker registry
+      community.docker.docker_image:
+        name: "{{ registry }}/{{ image_name }}"
+        tag: "{{ image_tag }}"
+        source: pull
+
+    - name: Start inference container with environment variables
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ registry }}/{{ image_name }}:{{ image_tag }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        env:
+          MODEL_PATH: "{{ install_dir }}/model.tflite"
+          TRUCK_ID: "{{ truck_id }}"
+          MQTT_HOST: "{{ mqtt_host }}"
+          MQTT_PORT: "1883"
+        volumes:
+          - "{{ install_dir }}:{{ install_dir }}:ro"
+          - logibridge-data:/data
+
+    - name: Wait 15 seconds and verify container is running
+      ansible.builtin.shell: |
+        sleep 15
+        docker ps --filter 'name=^{{ container_name }}$' --filter 'status=running' --quiet
+      register: running_check
+      changed_when: false
+      failed_when: running_check.stdout | trim == ""
