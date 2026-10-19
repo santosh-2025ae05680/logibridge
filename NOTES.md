@@ -70,3 +70,10 @@
 - Prerequisites outside the playbook: logibridge-net, mosquitto container, registry with the image pushed.
 - Idempotency evidence: deployment/run1_output.txt and run2_output.txt (use in report section 5 and the video).
 - Ansible difficulty: docker_container state 'stopped' creates the container when it does not exist, so on a fresh host the stop task failed with "Cannot create container when image is not specified". Fixed with state 'absent' (stop if running, then remove; no-op if absent).
+
+## Step 11 decisions (E3 OTA strategy + M3)
+- E3: costs are almost identical (Rs 2.38 full / 2.39 canary / 2.44 shadow-summary per cycle, ~Rs 21/year); shadow with raw upload is Rs 53.79 per cycle. The risk column decides. Recommendation: canary, with rollback to a retained previous model (0 bytes) and a promotion gate (Critical recall > 95%, PSI < 0.25 over 48-72 h).
+- E3 uses the brief's 280 KB; the real INT8 model is 3.38 KB (4.1 KB Docker layer), so the real cost is ~Rs 0.03 per cycle.
+- M3: tfmot block pruning with block_size (in_features, 1) = whole-neuron ("filter") pruning, PolynomialDecay 0 -> 35% over 80% of 30 fine-tuning epochs, output layer not pruned. Pruned neurons removed physically (dead-neuron constants folded into the next bias; equivalence verified). 6-32-16-3 -> 6-21-10-3: params 803 -> 400, MACs 752 -> 366.
+- Stages run in separate processes to keep tfmot's legacy Keras away from the TFLite converter.
+- Honest caveat for the report: at this model size the TFLite file and the latency are dominated by fixed overhead, so M3's gains in size/latency will be small even though FLOPs halve.

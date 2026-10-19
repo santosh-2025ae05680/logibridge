@@ -1,0 +1,225 @@
+
+=== stage: extract ===
+2026-10-19 07:15:18.152695: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-10-19 07:15:18.152812: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-10-19 07:15:18.173386: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+Extracted 6 weight arrays from /root/logibridge/training/models/mlp_fp32.keras
+
+=== stage: prune ===
+2026-10-19 07:15:22.736011: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-10-19 07:15:22.736111: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-10-19 07:15:22.740637: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+Pruning schedule: 0 -> 35% over 360 of 450 steps (PolynomialDecay)
+Epoch 1/30
+Traceback (most recent call last):
+  File "/root/logibridge/training/prune_quantise.py", line 246, in <module>
+    main()
+  File "/root/logibridge/training/prune_quantise.py", line 242, in main
+    {"extract": stage_extract, "prune": stage_prune, "convert": stage_convert}[args.stage]()
+  File "/root/logibridge/training/prune_quantise.py", line 127, in stage_prune
+    model.fit(Xtr, ytr, validation_data=(Xva, yva), epochs=EPOCHS, batch_size=BATCH,
+  File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/utils/traceback_utils.py", line 70, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/tmp/__autograph_generated_filewixk6sxq.py", line 15, in tf__train_function
+    retval_ = ag__.converted_call(ag__.ld(step_function), (ag__.ld(self), ag__.ld(iterator)), None, fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_filedk9xo75i.py", line 45, in tf__step_function
+    outputs = ag__.converted_call(ag__.ld(model).distribute_strategy.run, (ag__.ld(run_step),), dict(args=(ag__.ld(data),)), fscope)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filedk9xo75i.py", line 18, in run_step
+    outputs = ag__.converted_call(ag__.ld(model).train_step, (ag__.ld(data),), None, fscope_1)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filerubrvo_7.py", line 37, in tf__train_step
+    y_pred = ag__.converted_call(ag__.ld(self), (ag__.ld(x),), dict(training=True), fscope)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 44, in tf__error_handler
+    ag__.if_stmt(ag__.not_(ag__.converted_call(ag__.ld(tf).debugging.is_traceback_filtering_enabled, (), None, fscope)), if_body, else_body, get_state, set_state, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 40, in else_body
+    raise ag__.converted_call(ag__.ld(e).with_traceback, (ag__.ld(filtered_tb),), None, fscope) from None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 34, in else_body
+    retval_ = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_fileafv_4u07.py", line 67, in tf____call__
+    retval_ = ag__.converted_call(ag__.converted_call(ag__.ld(super), (), None, fscope).__call__, tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 44, in tf__error_handler
+    ag__.if_stmt(ag__.not_(ag__.converted_call(ag__.ld(tf).debugging.is_traceback_filtering_enabled, (), None, fscope)), if_body, else_body, get_state, set_state, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 40, in else_body
+    raise ag__.converted_call(ag__.ld(e).with_traceback, (ag__.ld(filtered_tb),), None, fscope) from None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 34, in else_body
+    retval_ = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file2vk1ploj.py", line 242, in tf____call__
+    ag__.if_stmt(ag__.converted_call(ag__.ld(_in_functional_construction_mode), (ag__.ld(self), ag__.ld(inputs), ag__.ld(args), ag__.ld(kwargs), ag__.ld(input_list)), None, fscope), if_body_11, else_body_11, get_state_11, set_state_11, ('do_return', "kwargs['mask']", 'retval_', 'args', 'input_list', 'inputs', 'kwargs'), 3)
+  File "/tmp/__autograph_generated_file2vk1ploj.py", line 187, in else_body_11
+    outputs = ag__.converted_call(ag__.ld(call_fn), (ag__.ld(inputs),) + tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filexlf3jdw0.py", line 51, in error_handler
+    ag__.if_stmt(ag__.converted_call(ag__.ld(hasattr), (ag__.ld(e), '_keras_call_info_injected'), None, fscope_1), if_body, else_body, get_state, set_state, (), 0)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filexlf3jdw0.py", line 47, in if_body
+    raise ag__.ld(e)
+  File "/tmp/__autograph_generated_filexlf3jdw0.py", line 34, in error_handler
+    retval__1 = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope_1)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file_1y98w5c.py", line 141, in tf__call
+    ag__.if_stmt(ag__.ld(self)._graph_initialized, if_body_5, else_body_5, get_state_6, set_state_6, ('do_return', 'retval_', 'inputs', 'mask'), 2)
+  File "/tmp/__autograph_generated_file_1y98w5c.py", line 62, in if_body_5
+    retval_ = ag__.converted_call(ag__.converted_call(ag__.ld(super), (), None, fscope).call, (ag__.ld(inputs),), dict(training=ag__.ld(training), mask=ag__.ld(mask)), fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_filexfzpras9.py", line 29, in tf__call
+    retval_ = ag__.converted_call(ag__.ld(self)._run_internal_graph, (ag__.ld(inputs),), dict(training=ag__.ld(training), mask=ag__.ld(mask)), fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_filekl6wk5ie.py", line 174, in tf___run_internal_graph
+    ag__.for_stmt(ag__.ld(depth_keys), None, loop_body_4, get_state_9, set_state_9, (), {'iterate_names': 'depth'})
+  File "/tmp/__autograph_generated_filekl6wk5ie.py", line 166, in loop_body_4
+    ag__.for_stmt(ag__.ld(nodes), None, loop_body_3, get_state_8, set_state_8, (), {'iterate_names': 'node'})
+  File "/tmp/__autograph_generated_filekl6wk5ie.py", line 165, in loop_body_3
+    ag__.if_stmt(ag__.not_(continue__3), if_body_4, else_body_4, get_state_7, set_state_7, ('continue__3',), 0)
+  File "/tmp/__autograph_generated_filekl6wk5ie.py", line 160, in if_body_4
+    ag__.if_stmt(ag__.not_(continue__3), if_body_3, else_body_3, get_state_6, set_state_6, (), 0)
+  File "/tmp/__autograph_generated_filekl6wk5ie.py", line 145, in if_body_3
+    outputs = ag__.converted_call(ag__.ld(node).layer, tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 44, in tf__error_handler
+    ag__.if_stmt(ag__.not_(ag__.converted_call(ag__.ld(tf).debugging.is_traceback_filtering_enabled, (), None, fscope)), if_body, else_body, get_state, set_state, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 40, in else_body
+    raise ag__.converted_call(ag__.ld(e).with_traceback, (ag__.ld(filtered_tb),), None, fscope) from None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file3jkocmkj.py", line 34, in else_body
+    retval_ = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file2vk1ploj.py", line 242, in tf____call__
+    ag__.if_stmt(ag__.converted_call(ag__.ld(_in_functional_construction_mode), (ag__.ld(self), ag__.ld(inputs), ag__.ld(args), ag__.ld(kwargs), ag__.ld(input_list)), None, fscope), if_body_11, else_body_11, get_state_11, set_state_11, ('do_return', "kwargs['mask']", 'retval_', 'args', 'input_list', 'inputs', 'kwargs'), 3)
+  File "/tmp/__autograph_generated_file2vk1ploj.py", line 187, in else_body_11
+    outputs = ag__.converted_call(ag__.ld(call_fn), (ag__.ld(inputs),) + tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filexlf3jdw0.py", line 162, in error_handler
+    raise ag__.converted_call(ag__.ld(new_e).with_traceback, (ag__.ld(e).__traceback__,), None, fscope_1) from None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filexlf3jdw0.py", line 34, in error_handler
+    retval__1 = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope_1)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filegx10sjt_.py", line 71, in tf__call
+    update_mask = ag__.converted_call(ag__.ld(utils).smart_cond, (ag__.ld(training), ag__.ld(add_update), ag__.ld(no_op)), None, fscope)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filezswm5s9o.py", line 54, in tf__smart_cond
+    ag__.if_stmt(ag__.converted_call(ag__.ld(isinstance), (ag__.ld(pred), ag__.ld(variables).Variable), None, fscope), if_body, else_body, get_state, set_state, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_filezswm5s9o.py", line 50, in else_body
+    retval_ = ag__.converted_call(ag__.ld(smart_module).smart_cond, (ag__.ld(pred),), dict(true_fn=ag__.ld(true_fn), false_fn=ag__.ld(false_fn), name=ag__.ld(name)), fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_filegx10sjt_.py", line 48, in add_update
+    with ag__.ld(tf).control_dependencies([ag__.ld(self).pruning_obj.conditional_mask_update()]):
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_impl.py", line 310, in conditional_mask_update
+    return tf.distribute.get_replica_context().merge_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_filezwd4ahu2.py", line 67, in tf__mask_update_distributed
+    retval_ = ag__.converted_call(ag__.ld(tf).cond, (ag__.converted_call(ag__.ld(maybe_update_masks), (), None, fscope), ag__.ld(update_distributed), ag__.ld(no_update)), None, fscope)
+    ^^^^^
+  File "/tmp/__autograph_generated_filezwd4ahu2.py", line 57, in update_distributed
+    ag__.for_stmt(ag__.ld(self)._pruning_vars, None, loop_body, get_state, set_state, (), {'iterate_names': '(weight, mask, threshold)'})
+  File "/tmp/__autograph_generated_filezwd4ahu2.py", line 49, in loop_body
+    new_threshold, new_mask = ag__.converted_call(ag__.ld(self)._maybe_update_block_mask, (ag__.ld(weight),), None, fscope_2)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_file13rwoncw.py", line 116, in tf___maybe_update_block_mask
+    ag__.if_stmt(ag__.ld(self)._sparsity_m_by_n, if_body_2, else_body_2, get_state_2, set_state_2, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_file13rwoncw.py", line 107, in else_body_2
+    ag__.if_stmt(ag__.ld(self)._block_size == [1, 1], if_body_1, else_body_1, get_state_1, set_state_1, ('do_return', 'retval_'), 2)
+  File "/tmp/__autograph_generated_file13rwoncw.py", line 92, in else_body_1
+    updated_mask = ag__.converted_call(ag__.ld(pruning_utils).expand_tensor, (ag__.ld(new_mask), ag__.ld(self)._block_size), None, fscope)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/__autograph_generated_fileg52x0092.py", line 50, in tf__expand_tensor
+    ag__.if_stmt(ag__.converted_call(ag__.ld(tensor).get_shape, (), None, fscope).ndims != 2, if_body, else_body, get_state, set_state, (), 0)
+  File "/tmp/__autograph_generated_fileg52x0092.py", line 46, in if_body
+    raise ag__.converted_call(ag__.ld(ValueError), ('Input tensor must be rank 2',), None, fscope)
+ValueError: in user code:
+
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 1398, in train_function  *
+        return step_function(self, iterator)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 1370, in run_step  *
+        outputs = model.train_step(data)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 1147, in train_step  *
+        y_pred = self(x, training=True)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 565, in error_handler  *
+        del filtered_tb
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 588, in __call__  *
+        return super().__call__(*args, **kwargs)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 565, in error_handler  *
+        del filtered_tb
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/base_layer.py", line 1136, in __call__  *
+        outputs = call_fn(inputs, *args, **kwargs)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/sequential.py", line 397, in call  *
+        return super().call(inputs, training=training, mask=mask)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/functional.py", line 514, in call  *
+        return self._run_internal_graph(inputs, training=training, mask=mask)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/functional.py", line 671, in _run_internal_graph  *
+        outputs = node.layer(*args, **kwargs)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/training.py", line 560, in error_handler  *
+        filtered_tb = _process_traceback_frames(e.__traceback__)
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tf_keras/src/engine/base_layer.py", line 1136, in __call__  *
+        outputs = call_fn(inputs, *args, **kwargs)
+    File "/tmp/__autograph_generated_filexlf3jdw0.py", line 162, in error_handler  **
+        raise ag__.converted_call(ag__.ld(new_e).with_traceback, (ag__.ld(e).__traceback__,), None, fscope_1) from None
+    File "/tmp/__autograph_generated_filexlf3jdw0.py", line 34, in error_handler
+        retval__1 = ag__.converted_call(ag__.ld(fn), tuple(ag__.ld(args)), dict(**ag__.ld(kwargs)), fscope_1)
+    File "/tmp/__autograph_generated_filegx10sjt_.py", line 71, in tf__call  **
+        update_mask = ag__.converted_call(ag__.ld(utils).smart_cond, (ag__.ld(training), ag__.ld(add_update), ag__.ld(no_op)), None, fscope)
+    File "/tmp/__autograph_generated_filezswm5s9o.py", line 54, in tf__smart_cond  **
+        ag__.if_stmt(ag__.converted_call(ag__.ld(isinstance), (ag__.ld(pred), ag__.ld(variables).Variable), None, fscope), if_body, else_body, get_state, set_state, ('do_return', 'retval_'), 2)
+    File "/tmp/__autograph_generated_filezswm5s9o.py", line 50, in else_body
+        retval_ = ag__.converted_call(ag__.ld(smart_module).smart_cond, (ag__.ld(pred),), dict(true_fn=ag__.ld(true_fn), false_fn=ag__.ld(false_fn), name=ag__.ld(name)), fscope)
+    File "/tmp/__autograph_generated_filegx10sjt_.py", line 48, in add_update
+        with ag__.ld(tf).control_dependencies([ag__.ld(self).pruning_obj.conditional_mask_update()]):
+    File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_impl.py", line 310, in conditional_mask_update
+        return tf.distribute.get_replica_context().merge_call(
+    File "/tmp/__autograph_generated_filezwd4ahu2.py", line 67, in tf__mask_update_distributed  **
+        retval_ = ag__.converted_call(ag__.ld(tf).cond, (ag__.converted_call(ag__.ld(maybe_update_masks), (), None, fscope), ag__.ld(update_distributed), ag__.ld(no_update)), None, fscope)
+    File "/tmp/__autograph_generated_filezwd4ahu2.py", line 57, in update_distributed
+        ag__.for_stmt(ag__.ld(self)._pruning_vars, None, loop_body, get_state, set_state, (), {'iterate_names': '(weight, mask, threshold)'})
+    File "/tmp/__autograph_generated_filezwd4ahu2.py", line 49, in loop_body
+        new_threshold, new_mask = ag__.converted_call(ag__.ld(self)._maybe_update_block_mask, (ag__.ld(weight),), None, fscope_2)
+    File "/tmp/__autograph_generated_file13rwoncw.py", line 116, in tf___maybe_update_block_mask
+        ag__.if_stmt(ag__.ld(self)._sparsity_m_by_n, if_body_2, else_body_2, get_state_2, set_state_2, ('do_return', 'retval_'), 2)
+    File "/tmp/__autograph_generated_file13rwoncw.py", line 107, in else_body_2
+        ag__.if_stmt(ag__.ld(self)._block_size == [1, 1], if_body_1, else_body_1, get_state_1, set_state_1, ('do_return', 'retval_'), 2)
+    File "/tmp/__autograph_generated_file13rwoncw.py", line 92, in else_body_1
+        updated_mask = ag__.converted_call(ag__.ld(pruning_utils).expand_tensor, (ag__.ld(new_mask), ag__.ld(self)._block_size), None, fscope)
+    File "/tmp/__autograph_generated_fileg52x0092.py", line 50, in tf__expand_tensor
+        ag__.if_stmt(ag__.converted_call(ag__.ld(tensor).get_shape, (), None, fscope).ndims != 2, if_body, else_body, get_state, set_state, (), 0)
+    File "/tmp/__autograph_generated_fileg52x0092.py", line 46, in if_body
+        raise ag__.converted_call(ag__.ld(ValueError), ('Input tensor must be rank 2',), None, fscope)
+
+    ValueError: Exception encountered when calling layer 'prune_low_magnitude_dense' (type PruneLowMagnitude).
+    
+    in user code:
+    
+        File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_wrapper.py", line 295, in add_update  *
+            with tf.control_dependencies(
+        File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/keras/utils.py", line 55, in smart_cond  *
+            pred, true_fn=true_fn, false_fn=false_fn, name=name)
+        File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_impl.py", line 299, in update_distributed  *
+            new_threshold, new_mask = self._maybe_update_block_mask(weight)
+        File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_impl.py", line 197, in _maybe_update_block_mask  *
+            updated_mask = pruning_utils.expand_tensor(new_mask, self._block_size)
+        File "/root/logibridge/venv/lib/python3.11/site-packages/tensorflow_model_optimization/python/core/sparsity/keras/pruning_utils.py", line 75, in expand_tensor  *
+            raise ValueError("Input tensor must be rank 2")
+    
+        ValueError: Input tensor must be rank 2
+    
+    
+    Call arguments received by layer 'prune_low_magnitude_dense' (type PruneLowMagnitude):
+      • inputs=tf.Tensor(shape=(None, 6), dtype=float32)
+      • training=True
+      • kwargs=<class 'inspect._empty'>
+
+Traceback (most recent call last):
+  File "/root/logibridge/training/prune_quantise.py", line 246, in <module>
+    main()
+  File "/root/logibridge/training/prune_quantise.py", line 240, in main
+    subprocess.run([sys.executable, os.path.abspath(__file__), "--stage", st], check=True)
+  File "/root/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/root/logibridge/venv/bin/python', '/root/logibridge/training/prune_quantise.py', '--stage', 'prune']' returned non-zero exit status 1.

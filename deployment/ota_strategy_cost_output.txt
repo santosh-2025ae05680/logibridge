@@ -1,0 +1,11 @@
+model 280 KB, 85 trucks, canary 10, Rs 0.1/MB, cycle 6 weeks (8.69 cycles/year)
+telemetry: canary health 0.120 MB, shadow summaries 0.595 MB, shadow raw upload 514.08 MB
+
+scenario                                                 MB/cycle  Rs/cycle  Rs/year  exposed
+Full replacement                                            23.80     2.380     20.7       85
+Full replacement: bad model, rollback by re-download        47.60     4.760        -       85
+Canary: success (10, then the other 75)                     23.92     2.392     20.8       10
+Canary: bad model caught, rollback to retained model         2.92     0.292        -       10
+Canary: bad model caught, rollback by re-download            5.72     0.572        -       10
+Shadow: on-device comparison, daily summary                 24.39     2.440     21.2        0
+Shadow: upload every shadow output                         537.88    53.788    467.4        0
