@@ -12,7 +12,7 @@ inference). Figures come from deployment/ota_strategy_cost.py.
 |---|---|---|---|---|
 | Full replacement | 23.80 | 2.38 | 20.7 | 85 |
 | Canary (10, then 75) | 23.92 | 2.39 | 20.8 | 10 |
-| Shadow, on-device comparison | 24.40 | 2.44 | 21.2 | 0 |
+| Shadow, on-device comparison | 24.39 | 2.44 | 21.2 | 0 |
 | Shadow, upload all outputs | 537.88 | 53.79 | 467.4 | 0 |
 
 If the new model is bad: full replacement exposes all 85 trucks and a re-download
@@ -33,7 +33,7 @@ is how many trucks a faulty model can reach before it is caught.
   returns quickly.
 - **Against full replacement:** all 85 trucks run an unproven model at once. Coverage
   gaps delay the first sign of trouble, so a model that misses faults could do so
-  across the whole fleet before anyone notices. The saving over a canary is about
+  across the whole fleet before anyone notices. Full replacement is cheaper than a canary by only
   Rs 0.01 per cycle.
 - **Against shadow mode:** it has zero exposure, but (i) uploading shadow outputs
   costs about 22 times as much and is unreliable over a link with frequent outages,

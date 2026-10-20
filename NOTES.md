@@ -78,3 +78,11 @@
 - Stages run in separate processes to keep tfmot's legacy Keras away from the TFLite converter.
 - Honest caveat for the report: at this model size the TFLite file and the latency are dominated by fixed overhead, so M3's gains in size/latency will be small even though FLOPs halve.
 - M3 difficulty: tfmot 0.8.0 block pruning with block_size=(in_features, 1) crashed with "ValueError: Input tensor must be rank 2". Root cause: pruning_utils.factorized_pool() ends with a bare tf.squeeze(), so a block spanning a whole weight column pools to shape (1, N) and is squeezed to rank 1; expand_tensor() then rejects it. Fix: wrap factorized_pool to keep the pooled result rank 2. Verified: exactly 11/32 and 6/16 neurons zeroed, compact model equals pruned model to 1e-7.
+
+## Step 12 decisions (benchmark + F3)
+- Benchmark: 200 timed runs after 10 warm-ups per trial, 5 interleaved trials with rotated order, median reported; timed call = set_tensor + invoke + get_tensor on pre-quantised inputs, single thread, GC disabled.
+- Difficulty/finding: the first version showed whichever variant ran last as 2x slower (order effect on a noisy machine); a per-trial CPU% counter has ~10 ms resolution so it gave garbage for 2 ms trials. Fixed with interleaving and a separate 3 s sustained loop for CPU share.
+- At this size all three variants take ~1-2 us per inference; INT8 and pruning do not speed it up (call overhead dominates); differences are within noise. Energy E = P x t is derived, so it adds no independent information.
+- TDP assumption: 28 (processor base power) W; power attributed = TDP x (process CPU share of the whole CPU).
+- Pareto test treats latency/energy within 10% as ties; chart x-axis starts at 0.
+- Decision: deploy M3 (smallest, 100% Critical recall), canary rollout, M2 as retained rollback model.

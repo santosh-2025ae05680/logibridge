@@ -1,0 +1,18 @@
+2026-10-20 06:36:28.141022: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-10-20 06:36:28.141290: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-10-20 06:36:28.189245: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+validation windows: 57; logical CPUs: 16; TDP assumption: 28 W; 5 trials x 200 runs (+10 warm-up each)
+
+variant            mean ms    p95 ms  size KB   acc %   energy mJ  crit rec %  invoke ms   trial spread of mean (ms)
+M1 FP32            0.00230   0.00250     5.19  100.00    0.004025      100.00    0.00105   0.00228 - 0.00323
+M2 PTQ INT8        0.00242   0.00268     3.38  100.00    0.004240      100.00    0.00114   0.00231 - 0.00258
+M3 Pruned+INT8     0.00241   0.00248     2.94  100.00    0.004227      100.00    0.00109   0.00230 - 0.00253
+
+CPU use during timing: M1 FP32 100.0% of one core, M2 PTQ INT8 100.0% of one core, M3 Pruned+INT8 100.3% of one core
+Assumed power attributed to the process: M1 FP32 1.75 W, M2 PTQ INT8 1.75 W, M3 Pruned+INT8 1.755 W
+Tensor memory (bytes): M1 FP32 3452, M2 PTQ INT8 1016, M3 Pruned+INT8 545
+
+Pareto-optimal: M3 Pruned+INT8
+Saved /root/logibridge/optimisation/results/benchmark_results.csv
+      /root/logibridge/optimisation/results/pareto_chart.png
