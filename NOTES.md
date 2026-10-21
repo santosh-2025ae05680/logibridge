@@ -86,3 +86,9 @@
 - TDP assumption: 28 (processor base power) W; power attributed = TDP x (process CPU share of the whole CPU).
 - Pareto test treats latency/energy within 10% as ties; chart x-axis starts at 0.
 - Decision: deploy M3 (smallest, 100% Critical recall), canary rollout, M2 as retained rollback model.
+
+## Step 13 decisions (M3 release through the OTA pipeline)
+- inference/model.tflite is now M3 (pruned + INT8); reference_dist.json rebuilt for it; image tag 1.2 pushed to the local registry; deployed with Ansible (-e image_tag=1.2).
+- OTA evidence: deployment/ota_bandwidth_m3.txt (only the model layer is new), run3_ota_update_output.txt (changed=5), run4_idempotent_output.txt (changed=0).
+- Release gate used: Critical recall 100% (> 95%), drift monitor alert/recovery verified against the new reference.
+- Limitation to state in the report: the E3 recommendation of rollback to a retained previous model is a design recommendation. The 7-task playbook does not keep the previous model, so a rollback here means redeploying the previous model and reference from version control (the "re-download" cost case).

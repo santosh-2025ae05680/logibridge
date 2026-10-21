@@ -1,0 +1,27 @@
+
+PLAY [Deploy the LogiEdge inference service to this edge node] *****************
+
+TASK [Create /opt/logibridge directory if not present] *************************
+ok: [localhost]
+
+TASK [Copy new model file to /opt/logibridge/model.tflite] *********************
+ok: [localhost]
+
+TASK [Copy updated reference_dist.json] ****************************************
+ok: [localhost]
+
+TASK [Stop the running inference container if running] *************************
+skipping: [localhost]
+
+TASK [Pull updated container image from local Docker registry] *****************
+ok: [localhost]
+
+TASK [Start inference container with environment variables] ********************
+ok: [localhost]
+
+TASK [Wait 15 seconds and verify container is running] *************************
+ok: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=6    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+

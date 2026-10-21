@@ -1,0 +1,16 @@
+layer              size KB  status
+304074f06047       30132.3  shared (already on truck)
+0f752a1982d6        1263.7  shared (already on truck)
+759a7f30c318       14118.1  shared (already on truck)
+496c1a902b3a           0.2  shared (already on truck)
+e1b19fe26590           0.1  shared (already on truck)
+1691b10a8399           0.2  shared (already on truck)
+d6b9bc576c38       72298.1  shared (already on truck)
+3561f81aef81           3.8  shared (already on truck)
+46ef04c4fa93           3.3  shared (already on truck)
+2573dcfcf23c           0.3  shared (already on truck)
+9a8d5f965864           1.6  NEW
+
+Full image pull :    120.649 MB/truck x 85 =   10255.20 MB  -> Rs 1025.52
+Layer-cache OTA :    0.00165 MB/truck x 85 =     0.1405 MB  -> Rs 0.0141
+Saving          : 99.9986%  (72,988x less data)
