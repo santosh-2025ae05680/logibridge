@@ -1,6 +1,14 @@
 # LogiEdge: Edge AI for Cold-Chain Trucks
 
-AIML ZG535 Machine Learning on Edge, mini-project (EC-I). Group: <GROUP NO>. Authors: <NAMES AND IDs>.
+AIML ZG535 Machine Learning on Edge, mini-project (EC-I). 
+### Group: 15
+### Student Details:
+| BITS ID | Name | Contributions | 
+|--- |---|---|
+| 2025ae05381 | Disha Shetty H | 100% |
+| 2025ae05382 | Murali Krishna Sai Garisapati | 100% |
+| 2025ae05420 | Rajan Yadav | 100% |
+| 2025ae05680 | Santosh Kumar Behera | 100% |
 
 LogiEdge classifies the cargo compartment of a refrigerated truck as Normal, Warning or Critical
 on the truck itself, from temperature, compressor vibration and door events, so alerts keep
