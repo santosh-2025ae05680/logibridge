@@ -20,12 +20,14 @@
 
   tasks:
     - name: Create /opt/logibridge directory if not present
+      become: true
       ansible.builtin.file:
         path: "{{ install_dir }}"
         state: directory
         mode: "0755"
 
     - name: Copy new model file to /opt/logibridge/model.tflite
+      become: true
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../inference/model.tflite"
         dest: "{{ install_dir }}/model.tflite"
@@ -33,6 +35,7 @@
       register: model_file
 
     - name: Copy updated reference_dist.json
+      become: true
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../monitoring/reference_dist.json"
         dest: "{{ install_dir }}/reference_dist.json"
