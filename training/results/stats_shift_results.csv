@@ -1,0 +1,13 @@
+model,clip,stats,accuracy_pct,delta_vs_correct,recall_normal,recall_warning,recall_critical
+FP32 Keras,10,correct stats,100.0,0.0,100.0,100.0,100.0
+FP32 Keras,10,stats +3 sigma,100.0,0.0,100.0,100.0,100.0
+FP32 Keras,10,stats -3 sigma,100.0,0.0,100.0,100.0,100.0
+FP32 Keras,off,correct stats,40.35,0.0,100.0,0.0,0.0
+FP32 Keras,off,stats +3 sigma,40.35,0.0,100.0,0.0,0.0
+FP32 Keras,off,stats -3 sigma,40.35,0.0,100.0,0.0,0.0
+INT8 TFLite,10,correct stats,100.0,0.0,100.0,100.0,100.0
+INT8 TFLite,10,stats +3 sigma,100.0,0.0,100.0,100.0,100.0
+INT8 TFLite,10,stats -3 sigma,100.0,0.0,100.0,100.0,100.0
+INT8 TFLite,off,correct stats,100.0,0.0,100.0,100.0,100.0
+INT8 TFLite,off,stats +3 sigma,100.0,0.0,100.0,100.0,100.0
+INT8 TFLite,off,stats -3 sigma,100.0,0.0,100.0,100.0,100.0

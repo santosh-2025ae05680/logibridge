@@ -1,0 +1,4 @@
+variant,mean_ms,p95_ms,file_kb,accuracy_pct,energy_mj,critical_recall_pct,invoke_mean_ms,mean_ms_min,mean_ms_max,cpu_pct_of_one_core,assumed_power_w,tensor_memory_bytes
+M1 FP32,0.0023,0.002505,5.19,100.0,0.0040251,100.0,0.00105,0.002276,0.003232,100.0,1.75,3452
+M2 PTQ INT8,0.002423,0.002679,3.38,100.0,0.00424,100.0,0.001138,0.00231,0.002584,100.0,1.75,1016
+M3 Pruned+INT8,0.002408,0.002481,2.94,100.0,0.0042273,100.0,0.00109,0.002295,0.002534,100.3,1.755,545

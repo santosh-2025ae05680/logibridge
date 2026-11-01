@@ -1,0 +1,4 @@
+numpy==1.26.4
+paho-mqtt==2.1.0
+scipy==1.17.1
+tflite-runtime==2.14.0

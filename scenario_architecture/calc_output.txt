@@ -1,0 +1,8 @@
+Temperature :      0.346 MB/day
+Vibration   :    518.400 MB/day
+Door events :      0.002 MB/day
+RAW total   :    518.748 MB/day/truck -> Rs 51.87/day
+RAW fleet   : Rs 132,281/month (85 trucks)
+EDGE alerts :     0.0030 MB/day/truck -> Rs 0.0003/day
+EDGE fleet  : Rs 0.77/month
+Reduction   : 172,916x less data
