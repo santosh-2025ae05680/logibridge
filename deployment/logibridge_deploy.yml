@@ -29,7 +29,7 @@
     - name: Copy new model file to /opt/logibridge/model.tflite
       become: true
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../inference/model.tflite"
+        src: "{{ model_source | default(playbook_dir ~ '/../inference/model.tflite') }}"
         dest: "{{ install_dir }}/model.tflite"
         mode: "0644"
       register: model_file
@@ -37,7 +37,7 @@
     - name: Copy updated reference_dist.json
       become: true
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../monitoring/reference_dist.json"
+        src: "{{ reference_source | default(playbook_dir ~ '/../monitoring/reference_dist.json') }}"
         dest: "{{ install_dir }}/reference_dist.json"
         mode: "0644"
       register: reference_file

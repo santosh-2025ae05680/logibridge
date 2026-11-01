@@ -44,5 +44,8 @@ This is a CPU-only local demonstration, not a production cellular modem stack.
 The backend binds to loopback by default and has **no authentication/TLS**.
 Do not expose it publicly or use it for actual pharmaceutical data.
 The sync process is an independent service; it is not yet added to the seven-task
-Ansible playbook, preserving its exact assignment task count. End-to-end runtime
-integration with Docker/MQTT must be verified in your environment.
+Ansible playbook, preserving its exact assignment task count. End-to-end runtime integration **has since been verified** in the local guided Stage 6 demonstration using Docker MQTT, TFLite inference, PSI, offline HTTP retry and two acknowledgments in an operations-centre SQLite database. This still is not a real cellular outage or a remotely managed fleet.
+
+## Current implementation (post-patch)
+
+The original instructions above document the initial patch and a manual 3-terminal exercise. The supported repeatable demo is now `demo/demo_runner.sh`, with `demo/demo_cleanup.sh` for a clean runtime state. The seven-task Ansible playbook deploys inference only; the operations centre and sync agents are started as **demo helper containers**, not automatically as part of the seven tasks. See `demo/README.md` for the current commands, M2 baseline, M3 deployment and manual rollback.

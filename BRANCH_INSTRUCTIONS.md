@@ -1,3 +1,5 @@
+> **Historical patch application guide.** This document describes the original feature patch, not the current end-to-end demo. If you already have `feature/offline-alert-sync` checked out, **do not recreate the branch or reapply the old patch ZIP**. For current setup, demonstrations, and reset commands, use [`demo/README.md`](demo/README.md).
+
 # Apply the LogiBridge feature patch on a new branch from main
 
 Baseline ZIP used: `b36d49b448b969d5df7008cf2c420d98568a8427`.

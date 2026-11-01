@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# LogiBridge generated runtime data and Windows download metadata
+runtime_data/
+operations_centre/alerts.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*:Zone.Identifier
+*.Zone.Identifier

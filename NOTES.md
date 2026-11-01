@@ -92,3 +92,10 @@
 - OTA evidence: deployment/ota_bandwidth_m3.txt (only the model layer is new), run3_ota_update_output.txt (changed=5), run4_idempotent_output.txt (changed=0).
 - Release gate used: Critical recall 100% (> 95%), drift monitor alert/recovery verified against the new reference.
 - Limitation to state in the report: the E3 recommendation of rollback to a retained previous model is a design recommendation. The 7-task playbook does not keep the previous model, so a rollback here means redeploying the previous model and reference from version control (the "re-download" cost case).
+
+
+## Latest local guided-demo status (1 November 2026)
+
+The current repeatable path is `bash demo/demo_cleanup.sh` followed by `bash demo/demo_runner.sh all` (see `demo/README.md`). The checked-in inference model is M2 (`52ee32f1`); Stage 4 packages M3 (`84ff2345`) as image 1.1; Stage 5 deploys it with a matching PSI reference and validates a second Ansible run with `changed=0`; Stage 6 demonstrates an operations-centre outage and resumed synchronization. Stage 7 updates `optimisation/results/benchmark_results.csv` and Pareto chart.
+
+**Do not present historical Step 13 notes above (image tag 1.2, tracked M3 reference) as the current demo state.** They reflect an older release experiment. Current scripts keep the tracked M2 baseline intact and deploy M3 through Ansible from `training/models/mlp_pruned_int8.tflite`. Older archived evidence and report documents may show different latency, power or bandwidth values. Always identify the source and run date.
