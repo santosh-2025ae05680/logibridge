@@ -92,6 +92,16 @@ The cleanup deletes `runtime_data/demo/` and the `logibridge-data` Docker volume
 - Stage 4 builds local image `1.1` with M3. Stage 5 deploys M3 **and its model-specific PSI reference** via Ansible into `/opt/logibridge` while keeping the source-tree M2 model untouched (the checked-in reference currently identifies M3; see the submission review). The container uses `MODEL_PATH=/opt/logibridge/model.tflite`.
 - `bash demo/demo_runner.sh rollback` restores M2 model/reference/image 1.0; the playbook is **not an automatic health-triggered rollback controller**.
 
+#### Model and PSI reference used in our demonstration
+
+Our repository keeps M2 as the baseline model in `inference/model.tflite`, while M3 is the optimized model we selected for the final demonstration.
+
+The checked-in `monitoring/reference_dist.json` belongs to M3, not M2. During Stage 4, we generated a fresh M3 reference using 300 clean Normal windows. Stage 5 then deployed M3 along with its matching reference.
+
+This is the combination we used in our successful live test. PSI increased to 4.604 during the combined anomaly and returned to 0.000 after recovery, with 100 predictions in the monitoring window.
+
+For standalone monitoring with M2, we must first generate an M2-specific reference. The existing M3 reference should not be used directly with M2.
+
 ## Latest verified results — 4 November 2026
 
 Source: real-time full run (`evidence/latest_run_2026-11-04.txt`) and the matching `optimisation/results/benchmark_results.csv` included in this repository. Five trials of 200 timed calls after ten warm-ups; 57 held-out **synthetic** windows on WSL CPU, assumed 28 W TDP / 1.75 W process share.
@@ -133,14 +143,5 @@ Use these results for submission rather than the older text logs under `evidence
 ## Reproducibility and submission
 
 The training, baseline and drift-reference seeds are documented in source scripts; see `training/`, `monitoring/`, and `NOTES.md`. Validate the final PDF and demo video separately; the presence of this README or the local demo logs does not mean those submission artifacts have been updated.
-
-
-## Last-run benchmark interpretation
-
-| Model | Mean latency (ms) | P95 latency (ms) | Size (KB) | Accuracy | Critical recall | Estimated energy (mJ) |
-|---|---:|---:|---:|---:|---:|---:|
-| M1 FP32 | 0.00093 | 0.00109 | 5.19 | 100% | 100% | 0.001626 |
-| M2 PTQ INT8 | 0.00105 | 0.00112 | 3.38 | 100% | 100% | 0.001835 |
-| M3 Pruned INT8 | 0.00107 | 0.00108 | 2.94 | 100% | 100% | 0.001876 |
 
 All three were tested on the same **57 synthetic validation windows** on our WSL laptop. These tiny timing differences vary between runs, and the energy figures use a TDP estimate, not direct electrical measurement. The latest script reported **M1 and M3** as Pareto-optimal. M1 had the lowest mean latency, while M3 had the smallest model file and tensor memory (545 bytes). We still recommend M3 for a cautious *pilot*, not for deployment to real trucks without physical-device validation. For full evidence see `evidence/latest_run_2026-11-04.txt` and `optimisation/results/benchmark_results.csv`.
