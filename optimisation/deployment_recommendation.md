@@ -2,19 +2,19 @@
 
 ## Evidence used
 
-The table below is synchronized with the **latest CSV bundled in this repository (1 November 2026)**: `optimisation/results/benchmark_results.csv`. It supersedes older timing tables in previous report drafts. Measurements were made on WSL2 with a 12th Gen Intel Core i7-1260P, 16 logical CPUs, 28 W base-power assumption, 5 interleaved trials × 200 timed inferences (+10 warmups/trial), on 57 synthetic held-out windows.
+The table below is synchronized with the **latest CSV bundled in this repository (4 November 2026)**: `optimisation/results/benchmark_results.csv`. It supersedes older timing tables in previous report drafts. Measurements were made on WSL2 with a 12th Gen Intel Core i7-1260P, 16 logical CPUs, 28 W base-power assumption, 5 interleaved trials × 200 timed inferences (+10 warmups/trial), on 57 synthetic held-out windows.
 
 | Variant | Model KB | Parameters | MACs | Tensor memory (bytes) | Mean latency (ms) | P95 (ms) | Accuracy | Critical recall | Est. energy (mJ) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| M1 FP32 | 5.19 | 803 | 752 | 3452 | 0.000971 | 0.001022 | 100% | 100% | 0.0016987 |
-| M2 PTQ INT8 | 3.38 | 803 | 752 | 1016 | 0.000923 | 0.000977 | 100% | 100% | 0.0016144 |
-| M3 Pruned+INT8 | 2.94 | 400 | 366 | 545 | 0.000922 | 0.000970 | 100% | 100% | 0.0016131 |
+| M1 FP32 | 5.19 | 803 | 752 | 3452 | 0.00093 | 0.00109 | 100% | 100% | 0.001626 |
+| M2 PTQ INT8 | 3.38 | 803 | 752 | 1016 | 0.00105 | 0.00112 | 100% | 100% | 0.001835 |
+| M3 Pruned+INT8 | 2.94 | 400 | 366 | 545 | 0.00107 | 0.00108 | 100% | 100% | 0.001876 |
 
 ### Interpretation
 
 All three met the brief's Critical-recall gate (>95%) **on this synthetic validation set**. Small differences in microsecond-scale latency can change between runs and should not be treated as guaranteed speed advantages. TDP-based energy is derived from the same measured latency; it is an estimate rather than independent electrical measurement.
 
-In this run M3 has the lowest reported mean latency and energy estimate, but the differences versus M2 are tiny and not evidence of repeatable hardware-level advantage. M3 reduces file size from 5.19 KB (M1) to 2.94 KB (approximately 43%), parameters from 803 to 400, MACs from 752 to 366, and working tensor memory from 3452 to 545 bytes. This is a **memory/storage optimization**, not evidence of improved real-world detection performance.
+In this run M1 had the lowest mean latency and energy estimate, while M3 had the smallest model and lowest P95 latency. Both M1 and M3 appear on the Pareto frontier. The timing differences are too small to claim a repeatable hardware advantage. M3 reduces file size from 5.19 KB (M1) to 2.94 KB (approximately 43%), parameters from 803 to 400, MACs from 752 to 366, and working tensor memory from 3452 to 545 bytes. This is a **memory/storage optimization**, not evidence of improved real-world detection performance.
 
 ## SLA relevance
 
@@ -40,4 +40,20 @@ The requirement is to issue an alert within 90 seconds after a qualifying fault.
 - `optimisation/results/benchmark_results.csv` and `pareto_chart.png` — latest benchmarking artifact; rerunning Stage 7 updates these.
 - `demo/README.md` — tested seven-stage walkthrough and cleanup.
 - `deployment/ota_strategy.md` — fleet rollout and economics, distinguishing recommended policy from implemented behavior.
-- `reports/final_report.pdf` — older PDF that needs checking for values inconsistent with the latest artifacts.
+- `reports/final_report.pdf` — updated report containing the verified last-run measurements.
+
+
+## Verified final-run notes (4 November 2026)
+
+We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.
+
+
+## Measurements from our final run (4 November 2026)
+
+| Model | Mean latency (ms) | P95 latency (ms) | Size (KB) | Accuracy | Critical recall | Estimated energy (mJ) |
+|---|---:|---:|---:|---:|---:|---:|
+| M1 FP32 | 0.00093 | 0.00109 | 5.19 | 100% | 100% | 0.001626 |
+| M2 PTQ INT8 | 0.00105 | 0.00112 | 3.38 | 100% | 100% | 0.001835 |
+| M3 Pruned INT8 | 0.00107 | 0.00108 | 2.94 | 100% | 100% | 0.001876 |
+
+All three were tested on the same **57 synthetic validation windows** on our WSL laptop. These tiny timing differences vary between runs, and the energy figures use a TDP estimate, not direct electrical measurement. The latest script reported **M1 and M3** as Pareto-optimal. M1 had the lowest mean latency, while M3 had the smallest model file and tensor memory (545 bytes). We still recommend M3 for a cautious *pilot*, not for deployment to real trucks without physical-device validation. For full evidence see `evidence/latest_run_2026-11-04.txt` and `optimisation/results/benchmark_results.csv`.

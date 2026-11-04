@@ -1,0 +1,12 @@
+Our final checked run — 4 November 2026
+
+We ran the full seven-stage demonstration from the feature branch using synthetic refrigerated-truck readings. The scripts, model weights, training data and Ansible playbook are unchanged by this documentation update.
+
+- The Stage 6 simulator ran for **1,260 seconds at 1× speed**, with combined temperature and vibration faults from **120 to 240 seconds**. It sent **1,260 temperature**, **630 vibration RMS** and **4 door** messages.
+- The PSI monitor checked the latest **100** inference probabilities every **60 real seconds**. PSI was **0.000** at the initial clean observation (`n=8`), reached **4.604**, and returned to **0.000** with `n=100` after the fault. The alert threshold was 0.25 and the recovery threshold 0.10.
+- The operations-centre container was stopped to simulate loss of uplink. Two Critical alerts were retained locally, acknowledged after restart, and counted in the receiver database. We did not test an actual cellular modem.
+- Ansible deployed M3, fingerprint `84ff2345`: first run `ok=7, changed=3`; second run `ok=6, changed=0, skipped=1`.
+- Registry comparison: full image **119.649 MB** per truck versus **0.00573 MB** in missing layers, a calculated saving of **99.9952%** assuming the remaining layers are cached.
+- Benchmark (WSL laptop, 57 synthetic validation windows): M1 **0.00093 ms mean / 0.00109 ms P95 / 5.19 KB / 0.001626 mJ**; M2 **0.00105 ms / 0.00112 ms / 3.38 KB / 0.001835 mJ**; M3 **0.00107 ms / 0.00108 ms / 2.94 KB / 0.001876 mJ**. Each returned 100% accuracy and Critical recall **on the synthetic validation data**. Both M1 and M3 were shown on the Pareto frontier in this run.
+
+The original terminal output, including timestamps and Docker digests, is preserved as `evidence/latest_run_2026-11-04.txt`. The previous CSV and chart are in `evidence/archive/`, not deleted or passed off as the current run.

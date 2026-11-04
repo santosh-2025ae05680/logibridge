@@ -167,13 +167,13 @@ part6() {
   start_demo_sync
   run_script_container logibridge-demo-drift monitoring/drift_monitor.py monitor \
     --host mosquitto --reference /workspace/runtime_data/demo/m3_reference.json --truck-id TRUCK_001 \
-    --score p_normal --window 100 --min-samples 5 --interval 5 --stale-after 90
+    --score p_normal --window 100 --min-samples 5 --interval 60 --stale-after 90
   log 'Operations centre is now stopped to simulate loss of uplink; local MQTT stays working.'
   run docker stop logibridge-demo-ops
   run_script_container logibridge-demo-simulator data_pipeline/simulator.py \
-    --host mosquitto --truck-id TRUCK_001 --anomaly combined --anomaly-after 70 \
-    --anomaly-until 195 --duration 320 --speed 5 --seed 42 --quiet
-  log 'Simulator running accelerated; waiting for full 320 seconds of simulated readings.'
+    --host mosquitto --truck-id TRUCK_001 --anomaly combined --anomaly-after 120 \
+    --anomaly-until 240 --duration 1260 --speed 1 --seed 42 --quiet
+  log "Running the simulator at real-time speed for 1260 seconds."
   wait_demo logibridge-demo-simulator
   run docker logs --tail 6 logibridge-demo-simulator
   log 'Offline sync evidence:'
@@ -182,8 +182,14 @@ part6() {
   run docker start logibridge-demo-ops
   sleep 6
   run docker logs --tail 20 logibridge-demo-sync
-  run docker logs --tail 18 logibridge-demo-drift
-  run docker logs --tail 18 logibridge-inference
+  log "Complete PSI monitoring history: Normal → Drift → Recovery"
+  docker logs logibridge-demo-drift 2>&1 | grep ' n='
+  log "Critical inference examples"
+  docker logs logibridge-inference 2>&1 | grep ' Critical ' | head -n 5
+  log "Latest Normal inference examples"
+  docker logs logibridge-inference 2>&1 | grep ' Normal ' | tail -n 5
+  log "Door event examples"
+  docker logs logibridge-inference 2>&1 | grep 'DOOR ' | tail -n 4
   docker logs logibridge-demo-sync > "$WORK/sync.log" 2>&1
   docker logs logibridge-demo-drift > "$WORK/drift.log" 2>&1
   docker logs logibridge-inference > "$WORK/inference.log" 2>&1

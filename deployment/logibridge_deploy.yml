@@ -46,7 +46,8 @@
     # A new image tag needs no explicit stop: the start task recreates the container.
     # state 'absent' stops the container if it is running and then removes it. It is a
     # no-op when the container does not exist; state 'stopped' would try to create it.
-    - name: Stop the running inference container if running
+    - name: Stop and remove old inference container if running
+    # Remove the previous container before creating its replacement.
       community.docker.docker_container:
         name: "{{ container_name }}"
         state: absent

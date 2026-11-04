@@ -1,7 +1,6 @@
 # Branch feature additions — offline store-and-forward
 
-This patch is based on the user-provided `main` ZIP snapshot at commit
-`b36d49b448b969d5df7008cf2c420d98568a8427`.
+We implemented and verified these additions in the current Group 15 branch. The earlier starting revision was `b36d49b448b969d5df7008cf2c420d98568a8427`; the supported end-to-end demo is documented in `demo/README.md`.
 
 ## New functions
 
@@ -28,9 +27,7 @@ curl http://127.0.0.1:9100/alerts
 
 **Offline test:** stop the server, append a second alert, run the sync command
 (prints `[SYNC OFFLINE]`), restart server and rerun; the second alert arrives.
-Repeat a third time to see no duplicates. For a real inference integration,
-mount the inference container's `/data` volume into the sync agent and set
-`--alert-log` to the shared `alerts.jsonl` file. The simulated operations centre
+Repeat a third time to see no duplicates. In the verified Docker demo, the sync agent already mounts the same `logibridge-data` named volume used by the inference service. The simulated operations centre
 must be on a separate network endpoint during the outage test; don't stop the
 local Mosquitto broker.
 
@@ -48,4 +45,13 @@ Ansible playbook, preserving its exact assignment task count. End-to-end runtime
 
 ## Current implementation (post-patch)
 
-The original instructions above document the initial patch and a manual 3-terminal exercise. The supported repeatable demo is now `demo/demo_runner.sh`, with `demo/demo_cleanup.sh` for a clean runtime state. The seven-task Ansible playbook deploys inference only; the operations centre and sync agents are started as **demo helper containers**, not automatically as part of the seven tasks. See `demo/README.md` for the current commands, M2 baseline, M3 deployment and manual rollback.
+The three-terminal commands above are an optional unit-level check, not the final live setup. The supported repeatable demo is now `demo/demo_runner.sh`, with `demo/demo_cleanup.sh` for a clean runtime state. The seven-task Ansible playbook deploys inference only; the operations centre and sync agents are started as **demo helper containers**, not automatically as part of the seven tasks. See `demo/README.md` for the current commands, M2 baseline, M3 deployment and manual rollback.
+
+
+## Verified final-run notes (4 November 2026)
+
+We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.
+
+## Latest successful run (4 November 2026)
+
+We completed the full run at 1× for 1,260 seconds, using 60-second PSI checks over 100 predictions. The PSI peaked at 4.604 and recovered to 0.000 with `n=100`. Two offline Critical alerts were acknowledged after reconnecting the operations centre. The complete captured output is in `evidence/latest_run_2026-11-04.txt`. Our latest CPU benchmark places both M1 and M3 on the Pareto frontier; the new numbers are in `optimisation/results/benchmark_results.csv`.

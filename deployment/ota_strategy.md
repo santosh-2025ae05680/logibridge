@@ -44,9 +44,18 @@ is how many trucks a faulty model can reach before it is caught.
   uplink path. A sensible refinement is to run the canary trucks in shadow mode first.
 
 ## Note
-The real INT8 model in this project is 3.38 KB (4.1 KB as a Docker layer), so a **model-file-only** transfer of 3.38 KB across 85 trucks would cost about ₹0.029 under the assumed ₹0.10/MB price. This is **not** the full Docker-image download cost. The guided M2→M3 demo measures compressed registry layers separately using `inference/ota_bandwidth.py`; its results depend on the current registry and device cache. The 280 KB figure is the brief's
+The baseline INT8 model is 3.38 KB; the M3 candidate is 2.94 KB. The final Docker registry layer-cache experiment measured 0.00573 MB per truck of new compressed layers, so a **model-file-only** transfer of 3.38 KB across 85 trucks would cost about ₹0.029 under the assumed ₹0.10/MB price. This is **not** the full Docker-image download cost. The guided M2→M3 demo measures compressed registry layers separately using `inference/ota_bandwidth.py`; its results depend on the current registry and device cache. The 280 KB figure is the brief's
 assumption for a larger production model.
 
 ## Implementation versus proposal
 
 The local guided demonstration (`demo/demo_runner.sh`) actually performs an M2→M3 Ansible upgrade and manual rollback command. **It does not implement** automatic canary group selection, shadow inference, a 48–72-hour promotion gate, or rollback decisions triggered by production telemetry. These are risk-management recommendations for an eventual 85-truck system.
+
+
+## Verified final-run notes (4 November 2026)
+
+We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.
+
+## Latest successful run (4 November 2026)
+
+We completed the full run at 1× for 1,260 seconds, using 60-second PSI checks over 100 predictions. The PSI peaked at 4.604 and recovered to 0.000 with `n=100`. Two offline Critical alerts were acknowledged after reconnecting the operations centre. The complete captured output is in `evidence/latest_run_2026-11-04.txt`. Our latest CPU benchmark places both M1 and M3 on the Pareto frontier; the new numbers are in `optimisation/results/benchmark_results.csv`.
