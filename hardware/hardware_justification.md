@@ -90,7 +90,7 @@ pruning (35% fewer FLOPs gives about 1.83 ms) or a smaller architecture.
 Reducing memory traffic alone would not help, because memory time is already
 below compute time. These map directly to variants M2 and M3 in Task F1.
 
-**Note for the report:** the actual MLP (6-32-16-3) has about 800 parameters and
+**Note:** the actual MLP (6-32-16-3) has about 800 parameters and
 about 1.5 kFLOPs, far below the 45 MFLOP / 18 MB figures given for this
 exercise. The B2 analysis uses the brief's numbers; the real model has far more
 latency headroom.

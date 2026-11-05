@@ -1,14 +1,11 @@
 # MQTT Architecture (Task C1)
 
 ## 1. Broker and sessions
-- Mosquitto runs on the edge node and listens only on 127.0.0.1:1883, so raw
+- In the tested demo Mosquitto runs on the isolated Docker network `logibridge-net` without a host-published 1883 port, so raw
   sensor streams never leave the truck (verify with `ss -ltn | grep 1883`).
-- Sensor-to-broker and inference-to-broker traffic stays on the loopback
-  interface of the same device, so packet loss between these clients is
+- Sensor-to-broker and inference-to-broker traffic stays inside the Docker network on the same WSL host, so packet loss between these clients is
   negligible.
-- The uplink agent that forwards alerts to the operations centre uses a
-  persistent session (clean_session=false, fixed client ID) with QoS 1, so
-  queued alerts survive coverage gaps of 35-90 minutes.
+- The implemented store-and-forward component reads the local JSONL alert log and retries HTTP delivery, recording acknowledgements in SQLite. MQTT QoS 1 covers local alert publication, not cellular HTTP delivery.
 
 ## 2. Topic tree
 ```mermaid
@@ -29,13 +26,13 @@ flowchart LR
 | sensors/temperature | simulator -> preprocessing | 1 Hz | 0 | no | {"ts":..., "value":4.12} |
 | sensors/vibration_rms | simulator -> preprocessing | 0.5 Hz | 0 | no | {"ts":..., "value":0.47} |
 | sensors/door | simulator -> preprocessing | on event | 1 | no | {"ts":..., "state":"OPEN"} |
-| inference | inference service -> drift monitor | every 10 s | 0 | no | [proposed] ts, class, confidence, probs, latency_ms, model version |
-| alerts | inference service -> local alert log, uplink agent | on Warning/Critical | 1 | no | [proposed] alert_id, truck_id, ts, class, confidence |
+| inference | inference service -> drift monitor | every 10 s | 0 | no | ts, class, confidence, p_normal, probs, latency_ms, model |
+| alerts | inference service -> local alert log, uplink agent | on Warning/Critical | 1 | no | alert_id, truck_id, ts, class, confidence |
 | status/{client} | each client (simulator, inference) -> any subscriber | on change | 1 | yes | {"state":"online"} or {"state":"offline"} |
 
 The truck ID is in the topic for sensor streams, so it is not repeated in each
 payload. Alerts leave the truck, so they carry truck_id themselves.
-[Finalise the inference and alert payloads in Step 6.]
+The implemented inference service publishes score, probabilities and model identity; local alert logs include stable event IDs for deduplication.
 
 ## 4. QoS justification
 - **temperature, vibration_rms (QoS 0):** high-rate streams that the next

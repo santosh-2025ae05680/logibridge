@@ -1,0 +1,436 @@
+(.venv) murali@LAPTOP-85DFU7MB:~/projects/logibridge$ bash demo/demo_runner.sh all
+
+PREP — non-destructive checks and services
+Python preprocessing dependencies OK
+
+$ docker build -f inference/Dockerfile -t logibridge-inference:1.0 .
+[+] Building 5.1s (13/13) FINISHED                                                                                                        docker:default
+ => [internal] load build definition from Dockerfile                                                                                                0.0s
+ => => transferring dockerfile: 908B                                                                                                                0.0s
+ => [internal] load metadata for docker.io/library/python:3.11-slim                                                                                 4.7s
+ => [internal] load .dockerignore                                                                                                                   0.0s
+ => => transferring context: 119B                                                                                                                   0.0s
+ => [1/8] FROM docker.io/library/python:3.11-slim@sha256:db20d8506e2f15b6db39b40b6015ca46bae855dec6dd326d462cfe79ae972893                           0.0s
+ => => resolve docker.io/library/python:3.11-slim@sha256:db20d8506e2f15b6db39b40b6015ca46bae855dec6dd326d462cfe79ae972893                           0.0s
+ => [internal] load build context                                                                                                                   0.0s
+ => => transferring context: 349B                                                                                                                   0.0s
+ => CACHED [2/8] WORKDIR /app                                                                                                                       0.0s
+ => CACHED [3/8] COPY inference/requirements.txt .                                                                                                  0.0s
+ => CACHED [4/8] RUN pip install --no-cache-dir -r requirements.txt                                                                                 0.0s
+ => CACHED [5/8] COPY data_pipeline/preprocessing.py .                                                                                              0.0s
+ => CACHED [6/8] COPY inference/tflite_runner.py inference/inference_service.py ./                                                                  0.0s
+ => CACHED [7/8] COPY data_pipeline/training_stats.npy .                                                                                            0.0s
+ => CACHED [8/8] COPY inference/model.tflite .                                                                                                      0.0s
+ => exporting to image                                                                                                                              0.1s
+ => => exporting layers                                                                                                                             0.0s
+ => => exporting manifest sha256:c630e8ddec4fa2f4ba29a50200850e686fc0ff96e94341e2f86131a3800e5a33                                                   0.0s
+ => => exporting config sha256:28b8d46f083d917149ff719f189a9d495c5574a321f4ab48adc6f96665c1cde9                                                     0.0s
+ => => exporting attestation manifest sha256:570fec317be2ad055f8dbfb307d9b541d4c050391e41879e15107763b50d6768                                       0.0s
+ => => exporting manifest list sha256:0f791d7fe67879ddf9bb80453d6961d81bb3807939c2c3554b1e0f5553d06f6e                                              0.0s
+ => => naming to docker.io/library/logibridge-inference:1.0                                                                                         0.0s
+ => => unpacking to docker.io/library/logibridge-inference:1.0                                                                                      0.0s
+
+$ docker tag logibridge-inference:1.0 localhost:5000/logibridge-inference:1.0
+
+$ docker push localhost:5000/logibridge-inference:1.0
+The push refers to repository [localhost:5000/logibridge-inference]
+9c68fddd3830: Layer already exists 
+9b8f7cbff4ca: Layer already exists 
+b81671f80c47: Layer already exists 
+ee5aaeba9945: Layer already exists 
+361db8171547: Layer already exists 
+5a026c7c91b8: Layer already exists 
+9ef07d4becfb: Pushed 
+1b1c9e112909: Layer already exists 
+7dd1b26700c0: Layer already exists 
+24ff04c92107: Layer already exists 
+293039065bf5: Layer already exists 
+6fc242d221a6: Layer already exists 
+1.0: digest: sha256:0f791d7fe67879ddf9bb80453d6961d81bb3807939c2c3554b1e0f5553d06f6e size: 856
+  Nothing in /opt/logibridge, Git, images, or existing runtime data was deleted.
+
+1 — Project and architecture
+
+$ git branch --show-current
+feature/offline-alert-sync
+
+$ python --version
+Python 3.11.17
+  Architecture: simulator -> Mosquitto -> 5-point MA/30s windows -> TFLite -> alerts
+  Separate: PSI subscriber, store-and-forward sync, HTTP operations centre.
+  Open scenario_architecture/system_architecture.png for narration.
+[ENTER for next step] 
+
+2 — Simulator, preprocessing, and MQTT topic routing
+
+$ python data_pipeline/preprocessing.py check
+Mean RAW feature per mode
+mode        windows    temp_mean     temp_std  temp_rate_c      vib_rms     vib_peak  vib_kurtosi
+none             87        3.987        0.127        0.001        0.448        0.481       -0.594
+temp_drift       87       40.187        0.715        4.801        0.448        0.481       -0.594
+vibration        87        3.987        0.127        0.001        1.193        1.292       -0.594
+combined         87       40.187        0.715        4.801        1.193        1.292       -0.594
+
+Mean NORMALISED feature per mode (clipped to +/-10)
+mode                   temp_mean     temp_std  temp_rate_c      vib_rms     vib_peak  vib_kurtosi
+none                       -0.12         0.43        -0.02        -0.26        -0.17         0.07
+temp_drift                 10.00        10.00        10.00        -0.26        -0.17         0.07
+vibration                  -0.12         0.43        -0.02        10.00        10.00         0.07
+combined                   10.00        10.00        10.00        10.00        10.00         0.07
+  This broker is isolated from the WSL system broker; demo sensor traffic stays on logibridge-net.
+
+$ docker logs --tail 12 logibridge-demo-simulator
+t=    10s  temp=  4.341 C  vib_rms=0.969 g
+t=    11s  temp=  4.189 C
+t=    12s  temp=  5.103 C  vib_rms=1.211 g
+t=    13s  temp=  4.552 C
+t=    14s  temp=  4.461 C  vib_rms=1.411 g
+*** anomaly ended at t=15s: clean data restored
+t=    15s  temp=  4.624 C
+t=    16s  temp=  3.931 C  vib_rms=0.469 g
+t=    17s  temp=  4.478 C
+t=    18s  temp=  4.332 C  vib_rms=0.378 g
+t=    19s  temp=  3.670 C
+Stopped. Messages published: {'temperature': 20, 'vibration': 10, 'door': 0}
+[ENTER for next step] 
+
+3 — Model validation and comparison (read-only)
+
+$ python demo/show_model_results.py
+Held-out synthetic validation dataset (same windows for every model)
+Class         Training  Validation
+Normal              92          23
+Warning             68          17
+Critical            68          17
+TOTAL              228          57
+
+Confusion matrices: rows=actual, columns=predicted [Normal, Warning, Critical]
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+M1 FP32: size=5.19 KB accuracy=100.00% Critical recall=100.00%
+    [23, 0, 0]
+    [0, 17, 0]
+    [0, 0, 17]
+M2 PTQ INT8: size=3.38 KB accuracy=100.00% Critical recall=100.00%
+    [23, 0, 0]
+    [0, 17, 0]
+    [0, 0, 17]
+M3 Pruned INT8: size=2.94 KB accuracy=100.00% Critical recall=100.00%
+    [23, 0, 0]
+    [0, 17, 0]
+    [0, 0, 17]
+
+Note: synthetic held-out results, not real-truck validation.
+  Model M2 is the previously verified deployment; M3 is the size-optimized candidate.
+[ENTER for next step] 
+
+4 — Docker image layer caching and model-only OTA build
+
+$ python monitoring/drift_monitor.py build-reference --model /home/murali/projects/logibridge/runtime_data/demo/m3_reference_model/model.tflite --out /home/murali/projects/logibridge/runtime_data/demo/m3_reference.json
+2026-11-04 15:58:35.222158: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-11-04 15:58:35.222229: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-11-04 15:58:35.222987: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+Reference from 300 clean Normal windows, score=p_normal
+  model      : model.tflite@84ff2345
+  bin counts : [0, 0, 0, 300]   (bins: [0,.25) [.25,.5) [.5,.75) [.75,1.0])
+  proportions: [0.0, 0.0, 0.0, 1.0]
+  score min/mean: 0.941 / 0.995
+Saved /home/murali/projects/logibridge/runtime_data/demo/m3_reference.json
+
+$ docker build --progress=plain -f /home/murali/projects/logibridge/runtime_data/demo/m3_build/inference/Dockerfile -t logibridge-inference:1.1 /home/murali/projects/logibridge/runtime_data/demo/m3_build
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 908B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 DONE 0.5s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 24.60kB done
+#4 DONE 0.0s
+
+#5 [1/8] FROM docker.io/library/python:3.11-slim@sha256:db20d8506e2f15b6db39b40b6015ca46bae855dec6dd326d462cfe79ae972893
+#5 resolve docker.io/library/python:3.11-slim@sha256:db20d8506e2f15b6db39b40b6015ca46bae855dec6dd326d462cfe79ae972893 0.0s done
+#5 DONE 0.0s
+
+#6 [5/8] COPY data_pipeline/preprocessing.py .
+#6 CACHED
+
+#7 [7/8] COPY data_pipeline/training_stats.npy .
+#7 CACHED
+
+#8 [4/8] RUN pip install --no-cache-dir -r requirements.txt
+#8 CACHED
+
+#9 [6/8] COPY inference/tflite_runner.py inference/inference_service.py ./
+#9 CACHED
+
+#10 [2/8] WORKDIR /app
+#10 CACHED
+
+#11 [3/8] COPY inference/requirements.txt .
+#11 CACHED
+
+#12 [8/8] COPY inference/model.tflite .
+#12 CACHED
+
+#13 exporting to image
+#13 exporting layers done
+#13 exporting manifest sha256:c469146cb6e3debc274f5834f705e99a9d64bd61f6d85f189bb28dbbf2f53bae done
+#13 exporting config sha256:a152a543bc2d4c856982204915483600d069377dd46bca8353d2380067caeb8e done
+#13 exporting attestation manifest sha256:007b56380347d21418beb8752cd943d9f9d50f3c19865c5d1be655d3b88b6e39 0.0s done
+#13 exporting manifest list sha256:1de991b156e50b532de357ce2634fdcd79cc960e130efeeae4908c317477913b 0.0s done
+#13 naming to docker.io/library/logibridge-inference:1.1
+#13 naming to docker.io/library/logibridge-inference:1.1 done
+#13 unpacking to docker.io/library/logibridge-inference:1.1 0.0s done
+#13 DONE 0.1s
+
+$ docker tag logibridge-inference:1.1 localhost:5000/logibridge-inference:1.1
+
+$ docker push localhost:5000/logibridge-inference:1.1
+The push refers to repository [localhost:5000/logibridge-inference]
+293039065bf5: Layer already exists 
+9b8f7cbff4ca: Layer already exists 
+b81671f80c47: Layer already exists 
+6b7dc0550f79: Layer already exists 
+ee5aaeba9945: Layer already exists 
+24ff04c92107: Layer already exists 
+a83f11797bb2: Layer already exists 
+6fc242d221a6: Layer already exists 
+b3debb32274e: Pushed 
+80838ea4308f: Layer already exists 
+361db8171547: Layer already exists 
+7dd1b26700c0: Layer already exists 
+1.1: digest: sha256:1de991b156e50b532de357ce2634fdcd79cc960e130efeeae4908c317477913b size: 856
+
+$ python inference/ota_bandwidth.py --old 1.0 --new 1.1
+layer              size KB  status
+6fc242d221a6       29155.5  shared (already on truck)
+ee5aaeba9945        1259.5  shared (already on truck)
+24ff04c92107       14119.6  shared (already on truck)
+361db8171547           0.2  shared (already on truck)
+9b8f7cbff4ca           0.1  shared (already on truck)
+7dd1b26700c0           0.2  shared (already on truck)
+293039065bf5       72300.4  shared (already on truck)
+b81671f80c47           3.8  shared (already on truck)
+6b7dc0550f79           3.7  NEW
+a83f11797bb2           0.3  NEW
+80838ea4308f           1.6  NEW
+
+Full image pull :    119.649 MB/truck x 85 =   10170.18 MB  -> Rs 1017.02
+Layer-cache OTA :    0.00573 MB/truck x 85 =     0.4875 MB  -> Rs 0.0487
+Saving          : 99.9952%  (20,863x less data)
+  Compare hashes: image 1.0 contains M2; image 1.1 contains M3.
+
+$ docker run --rm --entrypoint sha256sum logibridge-inference:1.1 /app/model.tflite
+84ff23454aeed5418c6f821ad9a11ce67f61f87b31763ab024f5dd03159b1528  /app/model.tflite
+[ENTER for next step] 
+
+5 — Ansible M3 deployment + second-run idempotency
+  Ansible may ask for your Ubuntu sudo password on each invocation.
+BECOME password: 
+
+PLAY [Deploy the LogiEdge inference service to this edge node] ******************************************************************************************
+
+TASK [Create /opt/logibridge directory if not present] **************************************************************************************************
+[WARNING]: Host 'localhost' is using the discovered Python interpreter at '/home/murali/projects/logibridge/.venv/bin/python3.11', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [localhost]
+
+TASK [Copy new model file to /opt/logibridge/model.tflite] **********************************************************************************************
+changed: [localhost]
+
+TASK [Copy updated reference_dist.json] *****************************************************************************************************************
+changed: [localhost]
+
+TASK [Stop and remove old inference container if running] ***********************************************************************************************
+ok: [localhost]
+
+TASK [Pull updated container image from local Docker registry] ******************************************************************************************
+ok: [localhost]
+
+TASK [Start inference container with environment variables] *********************************************************************************************
+changed: [localhost]
+
+TASK [Wait 15 seconds and verify container is running] **************************************************************************************************
+ok: [localhost]
+
+PLAY RECAP **********************************************************************************************************************************************
+localhost                  : ok=7    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+$ docker logs --tail 8 logibridge-inference
+model=model.tflite@84ff2345 input=int8 broker=mosquitto:1883 truck=TRUCK_001
+connected; subscribed to sensor topics
+  Same playbook again; target recap: changed=0.
+BECOME password: 
+
+PLAY [Deploy the LogiEdge inference service to this edge node] ******************************************************************************************
+
+TASK [Create /opt/logibridge directory if not present] **************************************************************************************************
+[WARNING]: Host 'localhost' is using the discovered Python interpreter at '/home/murali/projects/logibridge/.venv/bin/python3.11', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [localhost]
+
+TASK [Copy new model file to /opt/logibridge/model.tflite] **********************************************************************************************
+ok: [localhost]
+
+TASK [Copy updated reference_dist.json] *****************************************************************************************************************
+ok: [localhost]
+
+TASK [Stop and remove old inference container if running] ***********************************************************************************************
+skipping: [localhost]
+
+TASK [Pull updated container image from local Docker registry] ******************************************************************************************
+ok: [localhost]
+
+TASK [Start inference container with environment variables] *********************************************************************************************
+ok: [localhost]
+
+TASK [Wait 15 seconds and verify container is running] **************************************************************************************************
+ok: [localhost]
+
+PLAY RECAP **********************************************************************************************************************************************
+localhost                  : ok=6    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+[ENTER for next step] 
+
+6 — Live MQTT inference, PSI, offline persistence, reconnect and delivery
+  Operations centre is now stopped to simulate loss of uplink; local MQTT stays working.
+
+$ docker stop logibridge-demo-ops
+logibridge-demo-ops
+  Running the simulator at real-time speed for 1260 seconds.
+
+$ docker logs --tail 6 logibridge-demo-simulator
+Simulator running: truck=TRUCK_001 anomaly=combined speed=1.0x broker=mosquitto:1883
+*** anomaly 'combined' started at t=120s
+*** anomaly ended at t=240s: clean data restored
+Stopped. Messages published: {'temperature': 1260, 'vibration': 630, 'door': 4}
+  Offline sync evidence:
+
+$ docker logs --tail 12 logibridge-demo-sync
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+  Restore operations centre and allow retries.
+
+$ docker start logibridge-demo-ops
+logibridge-demo-ops
+
+$ docker logs --tail 20 logibridge-demo-sync
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC OFFLINE] <urlopen error [Errno -2] Name or service not known>; retaining pending alerts
+[SYNC ACK] TRUCK_001-1793808130
+[SYNC ACK] TRUCK_001-1793808190
+  Complete PSI monitoring history: Normal → Drift → Recovery
+[16:01:50] PSI=0.000  n=8  bins=[0.00, 0.00, 0.00, 1.00]  ok
+[16:02:50] PSI=2.369  n=14  bins=[0.29, 0.00, 0.00, 0.71]  ALERT
+[16:03:50] PSI=4.604  n=20  bins=[0.50, 0.00, 0.00, 0.50]  ALERT
+[16:04:50] PSI=3.765  n=26  bins=[0.42, 0.00, 0.00, 0.58]  ALERT
+[16:05:51] PSI=2.943  n=32  bins=[0.34, 0.00, 0.00, 0.66]  ALERT
+[16:06:51] PSI=2.405  n=38  bins=[0.29, 0.00, 0.00, 0.71]  ALERT
+[16:07:51] PSI=1.975  n=45  bins=[0.24, 0.00, 0.00, 0.76]  ALERT
+[16:08:51] PSI=1.707  n=51  bins=[0.22, 0.00, 0.00, 0.78]  ALERT
+[16:09:50] PSI=1.532  n=56  bins=[0.20, 0.00, 0.00, 0.80]  ALERT
+[16:10:50] PSI=1.361  n=62  bins=[0.18, 0.00, 0.00, 0.82]  ALERT
+[16:11:50] PSI=1.223  n=68  bins=[0.16, 0.00, 0.00, 0.84]  ALERT
+[16:12:50] PSI=1.109  n=74  bins=[0.15, 0.00, 0.00, 0.85]  ALERT
+[16:13:50] PSI=1.013  n=80  bins=[0.14, 0.00, 0.00, 0.86]  ALERT
+[16:14:50] PSI=0.932  n=86  bins=[0.13, 0.00, 0.00, 0.87]  ALERT
+[16:15:51] PSI=0.862  n=92  bins=[0.12, 0.00, 0.00, 0.88]  ALERT
+[16:16:51] PSI=0.792  n=99  bins=[0.11, 0.00, 0.00, 0.89]  ALERT
+[16:17:50] PSI=0.782  n=100  bins=[0.11, 0.00, 0.00, 0.89]  ALERT
+[16:18:50] PSI=0.782  n=100  bins=[0.11, 0.00, 0.00, 0.89]  ALERT
+[16:19:50] PSI=0.313  n=100  bins=[0.05, 0.00, 0.00, 0.95]  ALERT
+[16:20:50] PSI=0.000  n=100  bins=[0.00, 0.00, 0.00, 1.00]  ok
+  Critical inference examples
+window end=1793808130  Critical  conf=0.996  p_normal=0.000  lat=0.223 ms
+ALERT Critical id=TRUCK_001-1793808130
+window end=1793808140  Critical  conf=0.996  p_normal=0.000  lat=0.171 ms
+window end=1793808150  Critical  conf=0.996  p_normal=0.000  lat=0.111 ms
+window end=1793808160  Critical  conf=0.996  p_normal=0.000  lat=0.152 ms
+  Latest Normal inference examples
+window end=1793809210  Normal    conf=0.996  p_normal=0.996  lat=0.151 ms
+window end=1793809220  Normal    conf=0.996  p_normal=0.996  lat=0.104 ms
+window end=1793809230  Normal    conf=0.996  p_normal=0.996  lat=0.167 ms
+window end=1793809240  Normal    conf=0.996  p_normal=0.996  lat=0.144 ms
+window end=1793809250  Normal    conf=0.996  p_normal=0.996  lat=0.212 ms
+  Door event examples
+DOOR OPEN at 1793808299
+DOOR CLOSE at 1793808338
+DOOR OPEN at 1793808655
+DOOR CLOSE at 1793808735
+  Check actual recipient records stored in runtime_data/demo/ops.sqlite3.
+Operations-centre received alerts: 2
+[ENTER for next step] 
+
+7 — Benchmark, OTA strategy economics, summary
+
+$ python optimisation/benchmark.py --tdp-w 28 --trials 5 --power-seconds 3
+2026-11-04 16:21:10.107451: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-11-04 16:21:10.107526: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-11-04 16:21:10.124234: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+validation windows: 57; logical CPUs: 16; TDP assumption: 28 W; 5 trials x 200 runs (+10 warm-up each)
+
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+variant            mean ms    p95 ms  size KB   acc %   energy mJ  crit rec %  invoke ms   trial spread of mean (ms)
+M1 FP32            0.00093   0.00109     5.19  100.00    0.001626      100.00    0.00043   0.00091 - 0.00118
+M2 PTQ INT8        0.00105   0.00112     3.38  100.00    0.001835      100.00    0.00051   0.00091 - 0.00114
+M3 Pruned+INT8     0.00107   0.00108     2.94  100.00    0.001876      100.00    0.00046   0.00092 - 0.00112
+
+CPU use during timing: M1 FP32 100.0% of one core, M2 PTQ INT8 100.0% of one core, M3 Pruned+INT8 100.0% of one core
+Assumed power attributed to the process: M1 FP32 1.75 W, M2 PTQ INT8 1.75 W, M3 Pruned+INT8 1.75 W
+Tensor memory (bytes): M1 FP32 3452, M2 PTQ INT8 1016, M3 Pruned+INT8 545
+
+Pareto-optimal: M1 FP32, M3 Pruned+INT8
+Saved /home/murali/projects/logibridge/optimisation/results/benchmark_results.csv
+      /home/murali/projects/logibridge/optimisation/results/pareto_chart.png
+
+$ python deployment/ota_strategy_cost.py
+model 280 KB, 85 trucks, canary 10, Rs 0.1/MB, cycle 6 weeks (8.69 cycles/year)
+telemetry: canary health 0.120 MB, shadow summaries 0.595 MB, shadow raw upload 514.08 MB
+
+scenario                                                 MB/cycle  Rs/cycle  Rs/year  exposed
+Full replacement                                            23.80     2.380     20.7       85
+Full replacement: bad model, rollback by re-download        47.60     4.760        -       85
+Canary: success (10, then the other 75)                     23.92     2.392     20.8       10
+Canary: bad model caught, rollback to retained model         2.92     0.292        -       10
+Canary: bad model caught, rollback by re-download            5.72     0.572        -       10
+Shadow: on-device comparison, daily summary                 24.39     2.440     21.2        0
+Shadow: upload every shadow output                         537.88    53.788    467.4        0
+  See optimisation/results/pareto_chart.png and optimisation/deployment_recommendation.md.
+  Scope: WSL CPU, synthetic sensors, TDP-based estimated energy, not physical trucks.
+  The demo leaves the Ansible M3 deployment running. Roll back explicitly if desired:
+    bash demo/demo_runner.sh rollback
+[ENTER for next step] 
+(.venv) murali@LAPTOP-85DFU7MB:~/projects/logibridge$ 

@@ -28,7 +28,7 @@ print(f"Memory time          : {t_memory*1e3:.3f} ms")
 print(f"Latency lower bound  : {t_bound*1e3:.3f} ms")
 print(f"Margin vs 90 s SLA   : {90/t_bound:,.0f}x")
 
-# ---- Illustrative what-if (state your own assumptions in the report) ----
+# ---- Illustrative what-if (assumptions listed in hardware_justification.md) ----
 PRUNE_FRACTION = 0.35     # matches M3 (35% pruning); FLOP reduction is approximate
 t_pruned = (FLOPS_PER_INF * (1 - PRUNE_FRACTION)) / PEAK_FLOPS
 print(f"What-if {PRUNE_FRACTION:.0%} fewer FLOPs : compute time {t_pruned*1e3:.3f} ms")

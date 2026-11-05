@@ -1,5 +1,5 @@
 # scenario_architecture/calc.py
-# ---- Assumptions (log these in NOTES.md and edit if you disagree) ----
+# ---- Assumptions (also listed in constraint_analysis.md) ----
 BYTES_PER_SAMPLE = 4        # float32
 SECONDS_PER_DAY  = 86_400
 COST_PER_MB      = 0.10     # Rs per MB (M2M SIM)

@@ -16,7 +16,7 @@ flowchart TB
         P --> M
       end
       L[("Local alert log<br/>persistent store-and-forward queue")]
-      U["Uplink agent<br/>TLS, QoS 1"]
+      U["Store-and-forward sync agent<br/>HTTP retry + ACK<br/>(TLS in production)"]
       B -->|"sensor topics"| P
       M -->|"inference result"| B
       M -->|"Warning / Critical alert"| L

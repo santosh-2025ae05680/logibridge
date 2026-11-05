@@ -44,6 +44,9 @@ is how many trucks a faulty model can reach before it is caught.
   uplink path. A sensible refinement is to run the canary trucks in shadow mode first.
 
 ## Note
-The real INT8 model in this project is 3.38 KB (4.1 KB as a Docker layer), so the actual
-cost of a full replacement is about Rs 0.03 per cycle. The 280 KB figure is the brief's
+The baseline INT8 model is 3.38 KB; the M3 candidate is 2.94 KB. The final Docker registry layer-cache experiment measured 0.00573 MB per truck of new compressed layers, so a model-file-only transfer of 3.38 KB across 85 trucks would cost about ₹0.029 under the assumed ₹0.10/MB price. This excludes the Docker image layers. The guided M2→M3 demo measures compressed registry layers separately using `inference/ota_bandwidth.py`; its results depend on the current registry and device cache. The 280 KB figure is the brief's
 assumption for a larger production model.
+
+## Implementation versus proposal
+
+The local guided demonstration (`demo/demo_runner.sh`) actually performs an M2→M3 Ansible upgrade and manual rollback command. It does not implement automatic canary group selection, shadow inference, a 48–72-hour promotion gate, or rollback decisions triggered by production telemetry. These are risk-management recommendations for an eventual 85-truck system.

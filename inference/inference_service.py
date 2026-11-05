@@ -12,6 +12,7 @@ Environment variables:
   MQTT_PORT   broker port                      (default 1883)
   ALERT_LOG   local alert log (JSON lines)     (default /data/alerts.jsonl)
   REALERT_S   repeat an active alert after N s (default 60)
+  DOOR_LOG    door state transition log (default /data/door_events.jsonl)
 """
 import hashlib
 import json
@@ -34,6 +35,7 @@ MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 ALERT_LOG = os.environ.get("ALERT_LOG", "/data/alerts.jsonl")
 REALERT_S = float(os.environ.get("REALERT_S", "60"))
+DOOR_LOG = os.environ.get("DOOR_LOG", "/data/door_events.jsonl")
 RESET_GAP_S = 120.0          # restart windowing after a sensor gap or a clock jump
 
 LABELS = ["Normal", "Warning", "Critical"]
@@ -64,6 +66,8 @@ class InferenceService:
         base = f"logibridge/trucks/{TRUCK_ID}"
         self.t_temp = f"{base}/sensors/temperature"
         self.t_vib = f"{base}/sensors/vibration_rms"
+        self.t_door = f"{base}/sensors/door"
+        self.t_door_status = f"{base}/status/door"
         self.t_inference = f"{base}/inference"
         self.t_alerts = f"{base}/alerts"
         self.t_status = f"{base}/status/inference"
@@ -76,15 +80,45 @@ class InferenceService:
         self.last_ts = None
         self.last_class = 0
         self.last_alert_ts = None
+        # A window reset must not forget the most recently observed physical door state.
+        if not hasattr(self, "door_state"):
+            self.door_state = "UNKNOWN"
 
     # ---- MQTT callbacks (signatures work for paho 1.x and 2.x) ----
     def on_connect(self, client, userdata, *rest):
-        client.subscribe([(self.t_temp, QOS_SENSOR), (self.t_vib, QOS_SENSOR)])
+        client.subscribe([(self.t_temp, QOS_SENSOR), (self.t_vib, QOS_SENSOR),
+                          (self.t_door, QOS_ALERT)])
         client.publish(self.t_status, jdump({"state": "online", "model": self.model_tag}),
                        qos=QOS_STATUS, retain=True)
         print("connected; subscribed to sensor topics", flush=True)
 
+    def handle_door(self, raw):
+        """Track door state independently of the required six-value ML feature vector."""
+        try:
+            p = json.loads(raw)
+            ts, state = float(p["ts"]), str(p["state"]).upper()
+        except (ValueError, KeyError, TypeError):
+            return
+        if state not in ("OPEN", "CLOSE"):
+            return
+        if state == self.door_state:
+            return
+        self.door_state = state
+        event = {"event_id": f"{TRUCK_ID}-door-{int(ts * 1000)}-{state}",
+                 "truck_id": TRUCK_ID, "ts": ts, "state": state}
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(DOOR_LOG)), exist_ok=True)
+            with open(DOOR_LOG, "a") as f:
+                f.write(jdump(event) + "\n")
+        except OSError as exc:
+            print(f"warning: cannot write door log ({exc})", flush=True)
+        self.client.publish(self.t_door_status, jdump(event), qos=QOS_STATUS)
+        print(f"DOOR {state} at {ts:.0f}", flush=True)
+
     def on_message(self, client, userdata, msg):
+        if msg.topic == self.t_door:
+            self.handle_door(msg.payload)
+            return
         try:
             p = json.loads(msg.payload)
             ts, value = float(p["ts"]), float(p["value"])
@@ -135,7 +169,7 @@ class InferenceService:
                          "confidence": round(float(probs[cls]), 4), "model": self.model_tag}
                 self.client.publish(self.t_alerts, jdump(alert), qos=QOS_ALERT)
                 try:
-                    os.makedirs(os.path.dirname(ALERT_LOG), exist_ok=True)
+                    os.makedirs(os.path.dirname(os.path.abspath(ALERT_LOG)), exist_ok=True)
                     with open(ALERT_LOG, "a") as f:
                         f.write(jdump(alert) + "\n")
                 except OSError as exc:

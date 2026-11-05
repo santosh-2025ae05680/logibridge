@@ -1,61 +1,43 @@
 # Deployment Recommendation (Task F3)
 
-## 1. Results (optimisation/results/benchmark_results.csv)
-| Variant | Size KB | Params | MACs | Tensor memory B | Mean ms | p95 ms | Accuracy % | Critical recall % | Energy uJ |
-|---|---|---|---|---|---|---|---|---|---|
-| M1 FP32 | 5.19 | 803 | 752 | 3452 | 0.00230 | 0.00250 | 100 | 100 | 4.03 |
-| M2 PTQ INT8 | 3.38 | 803 | 752 | 1016 | 0.00242 | 0.00268 | 100 | 100 | 4.24 |
-| M3 Pruned+INT8 | 2.94 | 400 | 366 | 545 | 0.00241 | 0.00248 | 100 | 100 | 4.23 |
+## Evidence
 
-All three variants clear the hard gate (Class 2 recall above 95%). At this model size
-the latency differences between them are within trial-to-trial noise (the medians differ by at most 5%), so
-latency does not separate the variants. Energy is derived as E = P x t, so it adds no
-information beyond latency. The real differences are size (M3 is 43% smaller than M1
-and 13% smaller than M2) and working memory (545 bytes against 1016 and 3452).
+Measured on 4 November 2026 (`optimisation/results/benchmark_results.csv`) on WSL2 with a 12th Gen Intel Core i7-1260P (16 logical CPUs), assuming 28 W TDP. Each variant ran 5 interleaved trials of 200 timed inferences after 10 warm-ups, on 57 synthetic held-out windows.
 
-## 2. Latency budget from the 90 s SLA
-- SLA: 90 s from fault signature to alert.
-- Worst-case windowing: a fault that starts just after a window closes needs a full 30 s
-  window, and windows close every 10 s, so about 40 s (50 s if two consecutive windows
-  must agree).
-- Publishing the alert and writing the local log take under 1 s.
-- This leaves about 49 s for inference (39 s with two-window confirmation).
-- Inference runs once per 10 s step, so it must finish well inside 10 s to avoid a
-  backlog. The binding per-inference budget is therefore 10 s.
-- Measured: 0.0024 ms (2.4 microseconds) on this laptop. Allowing a conservative 50x for a Raspberry Pi 5 core
-  (an assumption to be confirmed on the device) gives about 0.12 ms, which is about 83,000 times inside
-  the 10 s budget. The brief's hypothetical 45 MFLOP model has a Roofline lower bound of
-  2.81 ms, still about 32,000 times inside the 90 s SLA.
+| Variant | Model KB | Parameters | MACs | Tensor memory (bytes) | Mean latency (ms) | P95 (ms) | Accuracy | Critical recall | Energy (mJ) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| M1 FP32 | 5.19 | 803 | 752 | 3452 | 0.00093 | 0.00109 | 100% | 100% | 0.001626 |
+| M2 PTQ INT8 | 3.38 | 803 | 752 | 1016 | 0.00105 | 0.00112 | 100% | 100% | 0.001835 |
+| M3 Pruned+INT8 | 2.94 | 400 | 366 | 545 | 0.00107 | 0.00108 | 100% | 100% | 0.001876 |
 
-## 3. Memory constraints of the chosen device (Raspberry Pi 5)
-| Resource | Pi 5 | Model use |
-|---|---|---|
-| Storage (the equivalent of Flash) | microSD or NVMe, 16 GB or more | model 2.94-5.19 KB; image 364 MB uncompressed (120.65 MB compressed) |
-| RAM | 8 GB LPDDR4X | container uses 61.5 MiB (docker stats, idle service) |
-| Cache (the closest equivalent of SRAM) | per core 64 KB L1 data, 512 KB L2; 2 MB shared L3 | working tensors 545-3452 bytes fit inside the L1 data cache |
+### Interpretation
 
-For reference, the rejected STM32H7 option has about 2 MB Flash and about 1 MB SRAM. Even that device could hold these models (2.94 KB is
-0.15% of Flash), and the brief's 280 KB production model would still fit. The reason
-for rejecting it was the software stack (Docker, Mosquitto, Ansible), not memory.
+All three variants pass the >95% Critical-recall requirement on the synthetic validation set. M1 had the lowest mean latency and energy estimate, and M3 the smallest file and lowest P95 latency, so both are on the Pareto frontier. The latency differences are below 0.2 µs and change between runs, so we don't treat them as a real speed advantage. The energy figure is derived from latency and TDP rather than measured.
 
-## 4. Recommendation
-**Deploy M3 (pruned + INT8).** Its measured latency is within 5% of M2 (a tie), so the
-choice rests on size and memory.
+M3 reduces the file from 5.19 KB to 2.94 KB (about 43%), parameters from 803 to 400, MACs from 752 to 366, and working tensor memory from 3452 to 545 bytes.
 
-1. It clears the safety gate: Critical recall is 100% on the held-out windows, the same as
-   M1 and M2.
-2. It meets the latency budget by several orders of magnitude, like the others.
-3. It is the smallest on every resource: 2.94 KB file, 400 parameters, 366 MACs and 545
-   bytes of working tensors. That leaves the most headroom if the production model grows.
+## SLA
 
-Risks and mitigations:
-- Pruning removes capacity (21 and 10 hidden neurons). The simulated classes are separated
-  by more than 10 sigma, so 100% accuracy is not evidence of robustness on real,
-  overlapping fault data. Mitigation: the canary rollout and promotion gate from E3
-  (Class 2 recall above 95% on a replay set, PSI below 0.25), with M2 kept on the truck as
-  the instant rollback model.
-- The INT8 input range was calibrated on simulated data and saturates outside it.
-- The latency benefit of pruning was not demonstrated, so the case for M3 over M2 rests on
-  size and memory margin, not speed.
-- Releasing M3 needs its own reference_dist.json (built for the deployed model) and a new
-  image tag.
+The alert must be raised within 90 seconds of a fault. The pipeline uses 30-second windows every 10 seconds, so window collection takes most of that time; inference is negligible. Allowing 5 seconds for logging and publishing leaves about 45 seconds for inference, against 0.1–0.2 ms measured inside the live service. In the 4 November run the first Critical window closed 18 seconds after the fault started. We have not measured latency on a Raspberry Pi.
+
+## Decision: M3
+
+- **Baseline (M2):** `training/models/mlp_int8.tflite` (SHA-256 prefix `52ee32f1`). This is the image 1.0 model, the rollback target and the file tracked as `inference/model.tflite`.
+- **Recommended (M3):** `training/models/mlp_pruned_int8.tflite` (prefix `84ff2345`). It has the smallest file, MAC count and tensor memory with the same validation accuracy and Critical recall.
+- **Local deployment:** stages 4–6 of `demo/demo_runner.sh` built image 1.1, deployed M3 and its own PSI reference to `/opt/logibridge/` with the seven-task Ansible playbook, and ran the live MQTT inference, alert and sync test. The second Ansible run reported `changed=0`.
+- **Rollback:** `bash demo/demo_runner.sh rollback` redeploys M2, its reference and image 1.0 through Ansible. This is a manual step, not an automatic rollback on bad telemetry.
+
+## Acceptance gates before a fleet rollout
+
+1. Confirm Critical recall above 95% on recorded truck data; the current 100% comes from 17 synthetic Critical windows.
+2. Build the PSI reference from the exact model being deployed.
+3. Roll out to ten canary trucks first, watching alert rate, latency and PSI, with rollback ready.
+4. Rebuild and test the container for ARM before deploying to a Raspberry Pi 5; it has only been tested on x86_64.
+5. Add authentication, TLS, durable logging and power measurement, and test across real cellular outages.
+
+## Related files
+
+- `optimisation/results/benchmark_results.csv` and `pareto_chart.png`: benchmark output (regenerated by stage 7).
+- `demo/README.md`: the guided demo.
+- `deployment/ota_strategy.md`: rollout strategy and costs.
+- `reports/final_report.pdf`: the final report.

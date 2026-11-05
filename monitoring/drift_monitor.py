@@ -108,7 +108,7 @@ def cmd_monitor(args):
     expected = ref["proportions"]
     topic = f"logibridge/trucks/{args.truck_id}/inference"
     buf = collections.deque(maxlen=args.window)
-    state = {"model": None}
+    state = {"model": None, "last_received": None}
     lock = threading.Lock()
 
     try:                                    # paho-mqtt >= 2.0
@@ -130,6 +130,7 @@ def cmd_monitor(args):
         with lock:
             buf.append(value)
             state["model"] = p.get("model")
+            state["last_received"] = time.monotonic()
 
     client.on_connect = on_connect
     client.on_message = on_message
@@ -151,7 +152,12 @@ def cmd_monitor(args):
         with lock:
             scores = list(buf)
             model_tag = state["model"]
+            last_received = state["last_received"]
         now = datetime.datetime.now().strftime("%H:%M:%S")
+        if last_received is None or time.monotonic() - last_received > args.stale_after:
+            print(f"[{now}] [LOGIBRIDGE DATA STALE] No recent inference "
+                  f"(threshold={args.stale_after:.0f}s); skipping PSI", flush=True)
+            continue
         if len(scores) < args.min_samples:
             print(f"[{now}] warming up: {len(scores)}/{args.min_samples} inferences", flush=True)
             continue
@@ -227,6 +233,8 @@ def main():
     m.add_argument("--window", type=int, default=100, help="rolling window of inferences")
     m.add_argument("--min-samples", type=int, default=20)
     m.add_argument("--eps", type=float, default=EPS)
+    m.add_argument("--stale-after", type=float, default=90,
+                   help="seconds without live inference before PSI is suppressed")
     m.set_defaults(fn=cmd_monitor)
 
     o = sub.add_parser("offline-check", help="fast simulated run, no MQTT")
