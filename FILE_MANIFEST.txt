@@ -3,7 +3,6 @@ Group 15 — reviewed project file list (5 November 2026)
 .dockerignore
 .github/CODEOWNERS
 .gitignore
-CLEANUP_AND_SUBMISSION_REVIEW.md
 NOTES.md
 README.md
 data_pipeline/mqtt_architecture.md
@@ -64,6 +63,7 @@ scenario_architecture/refrigerated_truck_system.png
 scenario_architecture/system_architecture.mmd
 scenario_architecture/system_architecture.png
 scenario_architecture/system_architecture1.png
+scenario_architecture/system_architecture_updated.png
 tests/test_new_features.py
 training/convert_ptq.py
 training/dataset.csv

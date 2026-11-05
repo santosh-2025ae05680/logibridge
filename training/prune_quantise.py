@@ -157,7 +157,7 @@ def stage_prune():
     if norms1[dead1].max() > 1e-3 * norms1[~dead1].min() or \
             norms2[dead2].max() > 1e-3 * norms2[~dead2].min():
         print("WARNING: removed neurons are not (near) zero; pruning masks may not have been "
-              "applied. Send me this output.")
+              "applied. Check the pruning schedule before converting.")
     p["W1"][:, dead1] = 0.0
     p["W2"][:, dead2] = 0.0
     pruned_ref = (p["W1"], p["b1"], p["W2"], p["b2"], p["W3"], p["b3"])

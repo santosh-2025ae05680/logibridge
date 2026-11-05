@@ -17,7 +17,7 @@ LogiBridge (project title: LogiEdge) classifies simulated refrigerated-truck con
 
 ## Architecture
 
-![Architecture](scenario_architecture/system_architecture.png)
+![Architecture](scenario_architecture/system_architecture_updated.png)
 
 1. `data_pipeline/simulator.py` generates temperature (1 Hz), vibration (0.5 Hz) and door events; publishes them to Mosquitto MQTT.
 2. `inference/inference_service.py` subscribes, performs 5-point moving averages, overlapping 30-second windows / 10-second steps and six-value feature fusion, normalizes using `training_stats.npy`, and invokes TFLite.
