@@ -1,10 +1,10 @@
 # Deployment Recommendation (Task F3)
 
-## Evidence used
+## Evidence
 
-The table below is synchronized with the **latest CSV bundled in this repository (4 November 2026)**: `optimisation/results/benchmark_results.csv`. It supersedes older timing tables in previous report drafts. Measurements were made on WSL2 with a 12th Gen Intel Core i7-1260P, 16 logical CPUs, 28 W base-power assumption, 5 interleaved trials × 200 timed inferences (+10 warmups/trial), on 57 synthetic held-out windows.
+Measured on 4 November 2026 (`optimisation/results/benchmark_results.csv`) on WSL2 with a 12th Gen Intel Core i7-1260P (16 logical CPUs), assuming 28 W TDP. Each variant ran 5 interleaved trials of 200 timed inferences after 10 warm-ups, on 57 synthetic held-out windows.
 
-| Variant | Model KB | Parameters | MACs | Tensor memory (bytes) | Mean latency (ms) | P95 (ms) | Accuracy | Critical recall | Est. energy (mJ) |
+| Variant | Model KB | Parameters | MACs | Tensor memory (bytes) | Mean latency (ms) | P95 (ms) | Accuracy | Critical recall | Energy (mJ) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | M1 FP32 | 5.19 | 803 | 752 | 3452 | 0.00093 | 0.00109 | 100% | 100% | 0.001626 |
 | M2 PTQ INT8 | 3.38 | 803 | 752 | 1016 | 0.00105 | 0.00112 | 100% | 100% | 0.001835 |
@@ -12,48 +12,32 @@ The table below is synchronized with the **latest CSV bundled in this repository
 
 ### Interpretation
 
-All three met the brief's Critical-recall gate (>95%) **on this synthetic validation set**. Small differences in microsecond-scale latency can change between runs and should not be treated as guaranteed speed advantages. TDP-based energy is derived from the same measured latency; it is an estimate rather than independent electrical measurement.
+All three variants pass the >95% Critical-recall requirement on the synthetic validation set. M1 had the lowest mean latency and energy estimate, and M3 the smallest file and lowest P95 latency, so both are on the Pareto frontier. The latency differences are below 0.2 µs and change between runs, so we don't treat them as a real speed advantage. The energy figure is derived from latency and TDP rather than measured.
 
-In this run M1 had the lowest mean latency and energy estimate, while M3 had the smallest model and lowest P95 latency. Both M1 and M3 appear on the Pareto frontier. The timing differences are too small to claim a repeatable hardware advantage. M3 reduces file size from 5.19 KB (M1) to 2.94 KB (approximately 43%), parameters from 803 to 400, MACs from 752 to 366, and working tensor memory from 3452 to 545 bytes. This is a **memory/storage optimization**, not evidence of improved real-world detection performance.
+M3 reduces the file from 5.19 KB to 2.94 KB (about 43%), parameters from 803 to 400, MACs from 752 to 366, and working tensor memory from 3452 to 545 bytes.
 
-## SLA relevance
+## SLA
 
-The requirement is to issue an alert within 90 seconds after a qualifying fault. The pipeline uses overlapping 30-second windows with a 10-second step; its inference latencies are negligible relative to window collection and message scheduling on this laptop. **The benchmark does not measure end-to-end fault-to-alert SLA** and no Raspberry Pi latency was measured. Avoid claiming a 50× Raspberry Pi extrapolation as a tested result.
+The alert must be raised within 90 seconds of a fault. The pipeline uses 30-second windows every 10 seconds, so window collection takes most of that time; inference is negligible. Allowing 5 seconds for logging and publishing leaves about 45 seconds for inference, against 0.1–0.2 ms measured inside the live service. In the 4 November run the first Critical window closed 18 seconds after the fault started. We have not measured latency on a Raspberry Pi.
 
-## Deployment decision: M3 candidate and verified local demo
+## Decision: M3
 
-- **Baseline (M2)** — `training/models/mlp_int8.tflite` (`52ee32f1` SHA-256 prefix) is the reproducible source baseline and the rollback target. The checked-in `inference/model.tflite` matches it.
-- **Optimized candidate (M3)** — `training/models/mlp_pruned_int8.tflite` (`84ff2345` prefix) is the recommended model when file size, tensor memory and MAC budget matter most.
-- **Verified local deployment** — Stages 4–6 of `demo/demo_runner.sh` built image tag **1.1**, deployed the M3 file plus an M3-specific PSI reference to `/opt/logibridge/` through the seven-task Ansible playbook, and demonstrated live MQTT inference, Critical alerts, local persistence and HTTP synchronization. The second Ansible run reported `changed=0`.
-- **Rollback** — `bash demo/demo_runner.sh rollback` redeploys the M2 artifact, baseline reference and image 1.0 via Ansible. This is **manual redeployment**, not automatic rollback on telemetry failure and not proof that every remote truck retains the old model locally.
+- **Baseline (M2):** `training/models/mlp_int8.tflite` (SHA-256 prefix `52ee32f1`). This is the image 1.0 model, the rollback target and the file tracked as `inference/model.tflite`.
+- **Recommended (M3):** `training/models/mlp_pruned_int8.tflite` (prefix `84ff2345`). It has the smallest file, MAC count and tensor memory with the same validation accuracy and Critical recall.
+- **Local deployment:** stages 4–6 of `demo/demo_runner.sh` built image 1.1, deployed M3 and its own PSI reference to `/opt/logibridge/` with the seven-task Ansible playbook, and ran the live MQTT inference, alert and sync test. The second Ansible run reported `changed=0`.
+- **Rollback:** `bash demo/demo_runner.sh rollback` redeploys M2, its reference and image 1.0 through Ansible. This is a manual step, not an automatic rollback on bad telemetry.
 
-## Deployment risk and acceptance gates
+## Acceptance gates before a fleet rollout
 
-1. Confirm Critical-class recall >95% on a **representative replay set** before promotion; the current 100% reflects 17 synthetic Critical validation windows only.
-2. Generate a new PSI reference for the *exact* promoted model; do not reuse the M2 baseline JSON with M3 unless explicitly revalidated.
-3. Canary-test a subset of trucks before wider promotion, with alert-rate and latency monitoring, rollback readiness, and adequate communications coverage. This is a recommendation, not an automated function of the current Ansible playbook.
-4. Recheck cross-platform dependencies before deploying to Raspberry Pi 5 or other ARM hardware. The tested Docker runtime is x86_64-oriented.
-5. Production feasibility requires authentication, TLS, durable logging, hardware power measurement and cellular-failure experiments.
+1. Confirm Critical recall above 95% on recorded truck data; the current 100% comes from 17 synthetic Critical windows.
+2. Build the PSI reference from the exact model being deployed.
+3. Roll out to ten canary trucks first, watching alert rate, latency and PSI, with rollback ready.
+4. Rebuild and test the container for ARM before deploying to a Raspberry Pi 5; it has only been tested on x86_64.
+5. Add authentication, TLS, durable logging and power measurement, and test across real cellular outages.
 
-## Associated evidence
+## Related files
 
-- `optimisation/results/benchmark_results.csv` and `pareto_chart.png` — latest benchmarking artifact; rerunning Stage 7 updates these.
-- `demo/README.md` — tested seven-stage walkthrough and cleanup.
-- `deployment/ota_strategy.md` — fleet rollout and economics, distinguishing recommended policy from implemented behavior.
-- `reports/final_report.pdf` — updated report containing the verified last-run measurements.
-
-
-## Verified final-run notes (4 November 2026)
-
-We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.
-
-
-## Measurements from our final run (4 November 2026)
-
-| Model | Mean latency (ms) | P95 latency (ms) | Size (KB) | Accuracy | Critical recall | Estimated energy (mJ) |
-|---|---:|---:|---:|---:|---:|---:|
-| M1 FP32 | 0.00093 | 0.00109 | 5.19 | 100% | 100% | 0.001626 |
-| M2 PTQ INT8 | 0.00105 | 0.00112 | 3.38 | 100% | 100% | 0.001835 |
-| M3 Pruned INT8 | 0.00107 | 0.00108 | 2.94 | 100% | 100% | 0.001876 |
-
-All three were tested on the same **57 synthetic validation windows** on our WSL laptop. These tiny timing differences vary between runs, and the energy figures use a TDP estimate, not direct electrical measurement. The latest script reported **M1 and M3** as Pareto-optimal. M1 had the lowest mean latency, while M3 had the smallest model file and tensor memory (545 bytes). We still recommend M3 for a cautious *pilot*, not for deployment to real trucks without physical-device validation. For full evidence see `evidence/latest_run_2026-11-04.txt` and `optimisation/results/benchmark_results.csv`.
+- `optimisation/results/benchmark_results.csv` and `pareto_chart.png`: benchmark output (regenerated by stage 7).
+- `demo/README.md`: the guided demo.
+- `deployment/ota_strategy.md`: rollout strategy and costs.
+- `reports/final_report.pdf`: the final report.

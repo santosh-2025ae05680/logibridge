@@ -90,11 +90,7 @@ pruning (35% fewer FLOPs gives about 1.83 ms) or a smaller architecture.
 Reducing memory traffic alone would not help, because memory time is already
 below compute time. These map directly to variants M2 and M3 in Task F1.
 
-**Note for the report:** the actual MLP (6-32-16-3) has about 800 parameters and
+**Note:** the actual MLP (6-32-16-3) has about 800 parameters and
 about 1.5 kFLOPs, far below the 45 MFLOP / 18 MB figures given for this
 exercise. The B2 analysis uses the brief's numbers; the real model has far more
 latency headroom.
-
-## Verified final-run notes (4 November 2026)
-
-We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.

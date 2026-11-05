@@ -1,4 +1,4 @@
-Group 15 — reviewed project file list (5 November 2026)
+LogiEdge (Group 15) project file list
 
 .dockerignore
 .github/CODEOWNERS

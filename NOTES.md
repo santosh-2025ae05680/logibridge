@@ -1,6 +1,6 @@
 # Engineering notes — LogiEdge, Group 15
 
-These notes record our design choices and final evidence. They are not instructions to apply an old patch.
+These notes record our main design choices and the evidence behind them.
 
 - **Edge decision:** Raspberry Pi 5 (8 GB) + AI HAT+ chosen against the 10 W scenario limit. This is a design recommendation; tests ran on a WSL laptop.
 - **Sensor data:** temperature 1 Hz, vibration RMS 0.5 Hz, and discrete door events. The brief's 500 Hz raw three-axis vibration stream is used for **bandwidth analysis**, not published by this simulator.
@@ -11,7 +11,3 @@ These notes record our design choices and final evidence. They are not instructi
 - **OTA:** image M2 1.0 to M3 1.1. Estimated transfer 119.649 MB/truck for full image vs 0.00573 MB/truck for cached layers. M3 rollouts in our test are local Ansible deployments. The proposed ten-truck canary is an operational recommendation, not implemented fleet control.
 - **Limitations:** synthetic faults are easy to separate; steep temperature drift; no real cellular outage or Pi 5 measurements; TDP-based energy estimate rather than a wattmeter; demo MQTT/HTTP endpoints need production security.
 - **Evidence:** `evidence/latest_run_2026-11-04.txt`, `optimisation/results/benchmark_results.csv`, `training/results/stats_shift_results.csv`, `reports/final_report.pdf`. Older raw outputs are retained under `evidence/archive/`.
-
-## Latest successful run (4 November 2026)
-
-We completed the full run at 1× for 1,260 seconds, using 60-second PSI checks over 100 predictions. The PSI peaked at 4.604 and recovered to 0.000 with `n=100`. Two offline Critical alerts were acknowledged after reconnecting the operations centre. The complete captured output is in `evidence/latest_run_2026-11-04.txt`. Our latest CPU benchmark places both M1 and M3 on the Pareto frontier; the new numbers are in `optimisation/results/benchmark_results.csv`.

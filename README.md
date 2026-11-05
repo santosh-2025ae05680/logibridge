@@ -1,56 +1,56 @@
 # LogiEdge: Edge AI for Cold-Chain Trucks
 
-AIML ZG535 Machine Learning on Edge — mini-project (EC-I), Group 15.
+AIML ZG535 Machine Learning on Edge, mini-project (EC-I), Group 15.
 
 | BITS ID | Name | Contributions |
 |---|---|---|
-| 2025ae05381 | Disha Shetty H | 100% |
-| 2025ae05382 | Murali Krishna Sai Garisapati | 100% |
-| 2025ae05420 | Rajan Yadav | 100% |
-| 2025ae05680 | Santosh Kumar Behera | 100% |
+| 2025ae05381 | Disha Shetty H | Equal (25%) |
+| 2025ae05382 | Murali Krishna Sai Garisapati | Equal (25%) |
+| 2025ae05420 | Rajan Yadav | Equal (25%) |
+| 2025ae05680 | Santosh Kumar Behera | Equal (25%) |
 
-LogiBridge (project title: LogiEdge) classifies simulated refrigerated-truck conditions as **Normal, Warning or Critical** using temperature and vibration features. Door transitions are separately logged. The system performs inference locally while the operations centre can be unreachable.
+LogiEdge (repository name: logibridge) classifies simulated refrigerated-truck conditions as Normal, Warning or Critical from temperature and vibration features, on the truck itself. Door transitions are logged separately. Inference and alert logging keep working while the operations centre is unreachable, and queued alerts are delivered when it comes back.
 
-- Final report: [`reports/final_report.pdf`](reports/final_report.pdf), updated with the 4 November 2026 real-time demonstration.
-- Demo instructions: [`demo/README.md`](demo/README.md).
-- Demo video: **add the final recording URL before submission** (not included in this archive).
+- Final report: [`reports/final_report.pdf`](reports/final_report.pdf)
+- Demo video: see [`demo/demo_video_link.txt`](demo/demo_video_link.txt)
+- Demo instructions: [`demo/README.md`](demo/README.md)
 
 ## Architecture
 
 ![Architecture](scenario_architecture/system_architecture_updated.png)
 
-1. `data_pipeline/simulator.py` generates temperature (1 Hz), vibration (0.5 Hz) and door events; publishes them to Mosquitto MQTT.
-2. `inference/inference_service.py` subscribes, performs 5-point moving averages, overlapping 30-second windows / 10-second steps and six-value feature fusion, normalizes using `training_stats.npy`, and invokes TFLite.
-3. Critical alerts are written locally to JSONL; door state changes are logged separately. `inference/alert_sync.py` retries delivery via HTTP, tracking acknowledgments in SQLite. `operations_centre/server.py` deduplicates alert IDs in its SQLite database.
-4. `monitoring/drift_monitor.py` separately subscribes to inference messages and calculates PSI on the **Normal-class probability (`p_normal`)**; it also reports stale inference streams.
-5. A Docker registry supplies versioned images. The seven-task Ansible playbook deploys a selected model and matching PSI reference. The demo starts an operations-centre and sync helper in separate containers; **those helpers are not deployed by the seven-task playbook itself**.
+1. `data_pipeline/simulator.py` publishes temperature (1 Hz), vibration RMS (0.5 Hz) and door events to Mosquitto.
+2. `inference/inference_service.py` subscribes to the sensor topics, applies 5-sample moving averages, builds 30-second windows every 10 seconds, extracts the six fused features, normalises them with `training_stats.npy` and runs the TFLite model.
+3. Warning and Critical alerts are written to a local JSONL log. `inference/alert_sync.py` retries delivery over HTTP and records acknowledgements in SQLite; `operations_centre/server.py` stores alerts and ignores duplicate IDs.
+4. `monitoring/drift_monitor.py` subscribes to the inference topic and computes PSI on the Normal-class probability (`p_normal`). It also reports when inference messages stop arriving.
+5. A local Docker registry holds versioned images. The seven-task Ansible playbook deploys a chosen model and its PSI reference. In the demo, the operations centre and sync agent run as separate helper containers, outside the playbook.
 
-**Network note:** The repeatable demonstration uses the Docker network `logibridge-net` and a Mosquitto container named `mosquitto` (no host port mapping); it is separate from any WSL system Mosquitto service. The development broker allows anonymous connections **only on the isolated demo network**.
+The demo uses the Docker network `logibridge-net` and a Mosquitto container named `mosquitto`, with no host port mapping, so it is separate from any Mosquitto service installed in WSL. The broker allows anonymous connections because it is only reachable on that isolated network.
 
 ## Repository layout
 
 | Path | Purpose |
 |---|---|
-| `scenario_architecture/` | Constraint analysis, calculator and architecture diagram |
+| `scenario_architecture/` | Constraint analysis, bandwidth calculator and architecture diagrams |
 | `hardware/` | Edge-device selection, Roofline and fleet-cost calculations |
-| `data_pipeline/` | Simulator, preprocessing, MQTT design and normalization stats |
-| `training/` | Dataset generation, 6→32→16→3 MLP, FP32/INT8 conversion, 35% structured-pruning experiment |
-| `inference/` | MQTT inference, lightweight TFLite runner, Dockerfile, local alert sync, OTA bandwidth calculator |
-| `operations_centre/` | HTTP receiver and SQLite deduplication |
-| `monitoring/` | PSI monitor and reference distribution (tracked snapshot is M3; the runner creates a matching M3 reference before deployment) |
-| `deployment/` | Seven-task Ansible playbook, Docker Mosquitto configuration and OTA strategy calculations |
-| `optimisation/` | Three-variant CPU benchmark, latest CSV/chart and model recommendation |
-| `demo/` | Guided runner, cleanup script and model-comparison view |
-| `tests/` | Alert synchronization and idempotency-focused automated test |
-| `reports/` | Updated phase reports and final report (PDF and editable Word) |
+| `data_pipeline/` | Simulator, preprocessing, MQTT design and normalisation statistics |
+| `training/` | Dataset generation, 6-32-16-3 MLP, FP32/INT8 conversion, 35% structured pruning |
+| `inference/` | MQTT inference service, TFLite runner, Dockerfile, alert sync, OTA bandwidth calculator |
+| `operations_centre/` | HTTP receiver with SQLite de-duplication |
+| `monitoring/` | PSI monitor and reference distribution |
+| `deployment/` | Seven-task Ansible playbook, Mosquitto configuration, OTA strategy costs |
+| `optimisation/` | Three-variant benchmark, results CSV, Pareto chart and model recommendation |
+| `demo/` | Guided demo runner, cleanup script and model-comparison script |
+| `tests/` | Alert sync and idempotency test |
+| `evidence/` | Full terminal log of the 4 November run, plus earlier runs under `archive/` |
+| `reports/` | Phase 1, Phase 2 and final reports (PDF and Word) |
 
-## Environment (tested setup)
+## Environment
 
-Windows + WSL2 Ubuntu, Docker Desktop with Ubuntu WSL integration, Python **3.11** in `.venv`, Mosquitto Docker image, Ansible and `community.docker` collection. Your local environment also has traditional `/usr/bin/sudo.ws` because the WSL distribution's default `sudo-rs` timed out under Ansible.
+We tested on Windows with WSL2 Ubuntu, Docker Desktop (Ubuntu WSL integration on), Python 3.11 in `.venv`, the Mosquitto Docker image, Ansible and the `community.docker` collection. On our machine the default `sudo-rs` timed out under Ansible, so the runner uses `/usr/bin/sudo.ws` for privilege escalation.
 
 ```bash
 cd ~/projects/logibridge
-# If .venv already exists, do not recreate it:
 source .venv/bin/activate
 python --version
 docker info >/dev/null
@@ -58,90 +58,73 @@ ansible-playbook --version
 ansible-galaxy collection list community.docker
 ```
 
-For a new machine, set up Python 3.11 first, create `.venv` with `uv venv --python 3.11 .venv`, install dependencies with `uv pip install -r requirements.txt` inside the activated environment, and install Ansible plus its Docker collection. Do not copy the `.venv` directory between machines.
+On a new machine: install Python 3.11, create the environment with `uv venv --python 3.11 .venv`, run `uv pip install -r requirements.txt` inside it, and install Ansible with its Docker collection.
 
-## Full end-to-end demo (recommended)
-
-The tested runner is the authoritative way to perform the complete Docker/MQTT/Ansible demo, avoiding inconsistent hostnames and file paths:
+## Running the full demo
 
 ```bash
 cd ~/projects/logibridge
 source .venv/bin/activate
-bash demo/demo_runner.sh prep
-bash demo/demo_runner.sh all
-# Or: bash demo/demo_runner.sh all --auto
+bash demo/demo_runner.sh all          # or: bash demo/demo_runner.sh all --auto
 ```
 
-`all` already includes `prep`; the separate `prep` command is optional. The guided runner covers architecture, sensor/preprocessing check, validation, M3 OTA image build, Ansible M3 deployment + a `changed=0` second run, live MQTT/PSI/offline-synchronization, benchmarking and OTA economics. It may ask for the Ubuntu user password.
+`all` covers the architecture overview, the sensor and preprocessing check, model validation, the M3 OTA image build, Ansible deployment with a repeat run, the live MQTT/PSI/offline-sync test, the benchmark and the OTA cost comparison. It asks for the Ubuntu password during the Ansible steps.
 
-To start a new demo **without old alert records**, first inspect and run the dedicated cleanup script; it preserves Git, model artifacts, image cache, registry and broker:
+To start from a clean state without old alert records:
 
 ```bash
 bash demo/demo_cleanup.sh --dry-run
-bash demo/demo_cleanup.sh    # type RESET DEMO to confirm deletion of demo runtime data
+bash demo/demo_cleanup.sh             # type RESET DEMO to confirm
 bash demo/demo_runner.sh all
 ```
 
-The cleanup deletes `runtime_data/demo/` and the `logibridge-data` Docker volume; archive evidence externally before using it. See [`demo/README.md`](demo/README.md) for stage-by-stage commands, rollback and status checks.
+The cleanup deletes `runtime_data/demo/` and the `logibridge-data` Docker volume, so copy any logs you want to keep first. Stage-by-stage commands, rollback and status checks are in [`demo/README.md`](demo/README.md).
 
-### Model identity and deployment
+### Models
 
-- M1 FP32: `training/models/mlp_fp32.tflite`.
-- **M2 PTQ INT8**, baseline: `training/models/mlp_int8.tflite`, SHA-256 prefix `52ee32f1`. Tracked `inference/model.tflite` in this ZIP matches M2.
-- **M3 structured-pruned INT8**, recommended and verified during guided demo: `training/models/mlp_pruned_int8.tflite`, SHA-256 prefix `84ff2345`.
-- Stage 4 builds local image `1.1` with M3. Stage 5 deploys M3 **and its model-specific PSI reference** via Ansible into `/opt/logibridge` while keeping the source-tree M2 model untouched (the checked-in reference currently identifies M3; see the submission review). The container uses `MODEL_PATH=/opt/logibridge/model.tflite`.
-- `bash demo/demo_runner.sh rollback` restores M2 model/reference/image 1.0; the playbook is **not an automatic health-triggered rollback controller**.
+| Variant | File | SHA-256 prefix | Role |
+|---|---|---|---|
+| M1 FP32 | `training/models/mlp_fp32.tflite` | | Baseline |
+| M2 PTQ INT8 | `training/models/mlp_int8.tflite` (same as `inference/model.tflite`) | `52ee32f1` | Image 1.0, rollback target |
+| M3 pruned + INT8 | `training/models/mlp_pruned_int8.tflite` | `84ff2345` | Recommended; image 1.1 |
 
-#### Model and PSI reference used in our demonstration
+Stage 4 builds image 1.1 with M3 and creates an M3-specific PSI reference from 300 clean Normal windows. Stage 5 deploys M3 and that reference to `/opt/logibridge` with Ansible, and the container reads `MODEL_PATH=/opt/logibridge/model.tflite`. The checked-in `monitoring/reference_dist.json` is the M3 reference, so running the monitor against M2 on its own needs an M2 reference first (`python monitoring/drift_monitor.py build-reference --model training/models/mlp_int8.tflite --out runtime_data/m2_reference.json`). `bash demo/demo_runner.sh rollback` redeploys M2, its reference and image 1.0.
 
-Our repository keeps M2 as the baseline model in `inference/model.tflite`, while M3 is the optimized model we selected for the final demonstration.
+## Results from the 4 November 2026 run
 
-The checked-in `monitoring/reference_dist.json` belongs to M3, not M2. During Stage 4, we generated a fresh M3 reference using 300 clean Normal windows. Stage 5 then deployed M3 along with its matching reference.
+Full output: `evidence/latest_run_2026-11-04.txt`. Benchmark: `optimisation/results/benchmark_results.csv` (five trials of 200 timed calls after ten warm-ups, 57 held-out synthetic windows, WSL CPU, 28 W TDP with a 1.75 W single-core share).
 
-This is the combination we used in our successful live test. PSI increased to 4.604 during the combined anomaly and returned to 0.000 after recovery, with 100 predictions in the monitoring window.
-
-For standalone monitoring with M2, we must first generate an M2-specific reference. The existing M3 reference should not be used directly with M2.
-
-## Latest verified results — 4 November 2026
-
-Source: real-time full run (`evidence/latest_run_2026-11-04.txt`) and the matching `optimisation/results/benchmark_results.csv` included in this repository. Five trials of 200 timed calls after ten warm-ups; 57 held-out **synthetic** windows on WSL CPU, assumed 28 W TDP / 1.75 W process share.
-
-| Model | Mean ms | P95 ms | File KB | Accuracy | Critical recall | Estimated mJ | Tensor memory |
+| Model | Mean ms | P95 ms | File KB | Accuracy | Critical recall | Energy mJ | Tensor memory |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | M1 FP32 | 0.00093 | 0.00109 | 5.19 | 100% | 100% | 0.001626 | 3,452 B |
 | M2 PTQ INT8 | 0.00105 | 0.00112 | 3.38 | 100% | 100% | 0.001835 | 1,016 B |
 | M3 Pruned INT8 | 0.00107 | 0.00108 | 2.94 | 100% | 100% | 0.001876 | 545 B |
 
-### Full live PSI and offline-alert experiment
+M1 and M3 are on the Pareto frontier. The latency differences are below 0.2 µs and vary between runs; we recommend M3 for its smaller file and tensor memory.
 
-- Simulator: **1×**, 1,260 seconds; combined anomaly from **120–240 seconds**; 1,260 temperature, 630 vibration and four door events.
-- Monitor: **60 real seconds** between evaluations; the most recent **100 predictions**; initial PSI **0.000** (`n=8`), first drift PSI **2.369**, maximum **4.604**, recovery **0.000** with `n=100`. The 100-result buffer takes time to flush even after the model returns to Normal.
-- Two Critical alerts were retained while the operations-centre container was down; the sync client acknowledged two alerts and the receiver stored two records after restart. This simulates unavailable uplink/service, not real cellular coverage.
-- M3 deployed through Ansible with first recap `ok=7 changed=3`; rerun `ok=6 changed=0 skipped=1`. Image 1.1 contains model hash `84ff2345`.
-- Docker registry comparison: full 119.649 MB/truck, cache delta 0.00573 MB/truck. At 85 trucks, 10,170.18 MB versus 0.4875 MB, **99.9952%** saving at the stated cost model. This is a registry-layer estimate, not field transfer measurement.
+Live run:
 
-Use these results for submission rather than the older text logs under `evidence/archive/`. The demo run is 21 minutes of real sensor simulation, **not** a claim that the assigned video is 21 minutes.
+- Simulator at 1× for 1,260 seconds, combined fault from second 120 to 240 (1,260 temperature, 630 vibration and 4 door messages).
+- The first Critical window closed 18 seconds after the fault started.
+- PSI every 60 seconds over the latest 100 predictions: 0.000 at the start (`n=8`), 2.369 at the first alert, 4.604 at the peak, back to 0.000 with `n=100`.
+- The operations-centre container was stopped during the run. Two Critical alerts were kept locally, then acknowledged and stored after it restarted.
+- Ansible: first run `ok=7 changed=3`, second run `ok=6 changed=0 skipped=1`.
+- OTA: full image 119.649 MB per truck against 0.00573 MB of new layers; 10,170.18 MB against 0.4875 MB for 85 trucks, a 99.9952% saving if older layers are cached.
 
-## OTA and management evidence
+Outputs from earlier runs are kept in `evidence/archive/` for reference; the numbers above are the ones used in the report.
 
-- Guided demo: M2 image `1.0` → M3 image `1.1`, local registry manifest-layer comparison. Results are generated by `python inference/ota_bandwidth.py --old 1.0 --new 1.1`; values depend on the registry images and should **not** be copied from the archived `evidence/archive/deployment__ota_bandwidth_m3.txt` without checking its older tag/digests.
-- `deployment/ota_strategy_cost.py` uses **assumed 280 KB** model, 85 trucks, ₹0.10/MB and a six-week release cycle. Canary rollout (10 first, then 75) is **a proposed strategy**, not an implemented fleet orchestrator.
-- Ansible second deployment reached `changed=0`; local `localhost` target only, **not 85 physical edge devices**.
-- Guided live demo verified Critical alerts retained during operations-centre unavailability and acknowledged after restart; drift alerts were observed. The latest 1× live run demonstrated PSI recovery to 0.000 at `n=100` after drift peaked at 4.604.
-- Historic deployment outputs and OTA logs are in `evidence/archive/` as earlier experiment records; reports now reflect the latest run.
+## OTA strategy
 
-## Limitations and safety boundaries
+`deployment/ota_strategy_cost.py` uses the brief's assumptions (280 KB model, 85 trucks, ₹0.10/MB, update every six weeks). We recommend a ten-truck canary followed by the other 75; the reasoning is in `deployment/ota_strategy.md`. The demo performs the M2 to M3 upgrade and rollback on one node; canary selection across a fleet is a design proposal.
 
-- All sensors and freight conditions are simulated; no actual Raspberry Pi/MCU, refrigerated truck, modem or cellular coverage transition was tested.
-- The simulated drift of +0.08 °C per temperature reading is deliberately steep; synthetic classes are relatively separable. Feature z-scores are clipped at ±10.
-- The benchmark uses WSL CPU, not physical edge-device latency or measured electrical energy. The container's lightweight TFLite wheel is platform-specific and should not be presumed compatible with ARM without rebuilding/replacing the runtime.
-- PSI on `p_normal` monitors **prediction-score shift**, not confirmed real sensor-data drift, model accuracy decline or a causal hardware fault. Stale inference **is** monitored.
-- Offline HTTP retry and deduplicated storage were demonstrated; the simulated outage stops the operations-centre container (its hostname becomes unavailable), **not** a physical cellular link.
-- The demo's MQTT broker and operations-centre HTTP receiver have no production-grade authentication/TLS. Keep them isolated; do not expose to public networks or use sensitive operational data.
-- Rollback and canary/shadow promotion are design/command-level capabilities, not automatic fleet-wide governance. Retaining the previous model on **each truck** was not demonstrated; rollback via Ansible redeployment is supported in the local demo.
+## Limitations
 
-## Reproducibility and submission
+- Sensors and faults are simulated. We did not test on a Raspberry Pi, a truck, a cellular modem or a real coverage gap; the outage test stops the operations-centre container.
+- The +0.08 °C per reading drift is steep, so the synthetic classes are easy to separate. Feature z-scores are clipped at ±10. The models detect rising temperature well but miss a vibration-only fault and a temperature held steady above setpoint; the final report proposes a threshold rule alongside the model.
+- Benchmarks ran on a WSL laptop CPU, and energy is a TDP-based estimate. The container was only tested on x86_64; it needs to be rebuilt and tested for ARM before running on a Raspberry Pi.
+- PSI on `p_normal` detects a shift in the model's output distribution, not the physical cause.
+- The demo broker and HTTP receiver have no authentication or TLS and should stay on the isolated network.
 
-The training, baseline and drift-reference seeds are documented in source scripts; see `training/`, `monitoring/`, and `NOTES.md`. Validate the final PDF and demo video separately; the presence of this README or the local demo logs does not mean those submission artifacts have been updated.
+## Reproducibility
 
-All three were tested on the same **57 synthetic validation windows** on our WSL laptop. These tiny timing differences vary between runs, and the energy figures use a TDP estimate, not direct electrical measurement. The latest script reported **M1 and M3** as Pareto-optimal. M1 had the lowest mean latency, while M3 had the smallest model file and tensor memory (545 bytes). We still recommend M3 for a cautious *pilot*, not for deployment to real trucks without physical-device validation. For full evidence see `evidence/latest_run_2026-11-04.txt` and `optimisation/results/benchmark_results.csv`.
+Seeds for the dataset, training and PSI reference are set in the scripts under `training/` and `monitoring/`; see also `NOTES.md`.

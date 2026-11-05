@@ -7,7 +7,7 @@ the fault, and the SLA allows 90 seconds to alert. On the edge, worst-case
 detection is bounded by the pipeline design: a fault must enter a 30 s window
 that is evaluated every 10 s (at most about 40 s), plus inference of
 under 0.2 ms for the representative live inference samples (host CPU; not Pi 5) and under a second to log and publish the alert. That totals
-about 41 s, leaving roughly 49 s of margin. A credible source is Opensignal’s India Mobile Network Experience Report (April 2019). It reports measured 4G latency for Indian mobile operators: Airtel 64.2 ms, Jio 62.5 ms, Vodafone 68.4 ms, and Idea 78.7 ms. These are national operator-level measurements, not rural-only measurements. The real problems are unpredictable tail delays, retries and, above all, absent coverage.
+about 41 s, leaving roughly 49 s of margin. Opensignal’s India Mobile Network Experience Report (April 2019) reports measured 4G latency for Indian mobile operators: Airtel 64.2 ms, Jio 62.5 ms, Vodafone 68.4 ms, and Idea 78.7 ms. These are national operator-level measurements, not rural-only measurements. The real problems are unpredictable tail delays, retries and, above all, absent coverage.
 
 ## Bandwidth
 Per truck per day, temperature (1 Hz x 86,400 s x 4 B) is 0.35 MB, vibration
@@ -41,8 +41,3 @@ device and one encrypted channel, avoids storing raw data with a third-party
 cloud, and supports a contractual data-minimisation commitment. It reduces
 exposure but does not replace device hardening, access control and log
 integrity measures.
-
-
-## Verified final-run notes (4 November 2026)
-
-We verified the complete pipeline on synthetic data in WSL, using the deployed M3 model. The final Stage 6 ran for 1,260 real seconds at 1× speed, with a combined anomaly from second 120 to 240. The PSI monitor evaluated every 60 seconds over the latest 100 predictions: an initial 0.000 increased to 4.604 and later returned to 0.000 at `n=100`. Two Critical alerts were delivered after the operations-centre service was restored. Ansible's second deployment reported `changed=0`. These are local tests, not measurements on a refrigerated truck or an 85-vehicle fleet. Exact evidence is in `evidence/latest_run_2026-11-04.txt`.

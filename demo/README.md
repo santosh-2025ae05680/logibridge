@@ -1,19 +1,17 @@
-# LogiBridge end-to-end guided demo (WSL2 + Docker Desktop)
+# LogiEdge guided demo (WSL2 + Docker Desktop)
 
-This runner is adapted to the tested feature branch: `feature/offline-alert-sync`.
-Run from WSL Ubuntu **with Docker Desktop running and Ubuntu WSL integration enabled**.
-The local repository uses `.venv` (Python 3.11), not `venv`.
+The runner was developed on the `feature/offline-alert-sync` branch. Run it from WSL Ubuntu with Docker Desktop running and Ubuntu WSL integration enabled. The repository uses a `.venv` environment with Python 3.11.
 
 ## Before running
 
 1. `cd ~/projects/logibridge && source .venv/bin/activate`
-2. Confirm `docker info`, `ansible-playbook --version`, and the Docker collection `community.docker` work. `demo_runner.sh prep` checks the main prerequisites.
-3. The existing `inference/model.tflite` must contain **M2 INT8** (same bytes as `training/models/mlp_int8.tflite`). The script refuses to overwrite it if it differs.
-4. In WSL Ubuntu, `sudo-rs` caused Ansible privilege escalation to time out; the runner uses `ansible_become_exe=/usr/bin/sudo.ws` and will ask for your **Ubuntu sudo password** during Ansible operations. It does not store credentials.
-5. Registry container name: `logibridge-registry`, broker container name: `mosquitto`, Docker network: `logibridge-net`.
-6. The Docker broker is **not** the WSL system Mosquitto. The simulator and PSI monitor run in temporary containers connected to `logibridge-net` to avoid the two-broker mismatch. No host port 1883 is needed.
+2. Check that `docker info`, `ansible-playbook --version` and the `community.docker` collection work. `bash demo/demo_runner.sh prep` checks the main prerequisites.
+3. `inference/model.tflite` must be the M2 INT8 model (the same bytes as `training/models/mlp_int8.tflite`). The runner stops rather than overwrite it if it differs.
+4. On our WSL Ubuntu, `sudo-rs` made Ansible privilege escalation time out, so the runner uses `ansible_become_exe=/usr/bin/sudo.ws` and asks for the Ubuntu password during the Ansible steps. It does not store the password.
+5. Container and network names: registry `logibridge-registry`, broker `mosquitto`, network `logibridge-net`.
+6. The Docker broker is separate from any Mosquitto installed in WSL. The simulator and PSI monitor run in temporary containers on `logibridge-net`, so no host port 1883 is needed.
 
-## Clear prior demo data before a new recording
+## Clearing old demo data
 
 ```bash
 bash demo/demo_cleanup.sh --dry-run
@@ -21,38 +19,35 @@ bash demo/demo_cleanup.sh      # type RESET DEMO to confirm
 bash demo/demo_runner.sh all
 ```
 
-The cleanup script **removes** the demo-owned Docker alert volume `logibridge-data` and `runtime_data/demo/` (including the SQLite operations-centre database, alert logs and temporary M3 build). **Export evidence before using it**. It restores M2 via Ansible when the deployed inference container exists, removes demo helpers and inference container, and leaves Docker images, Git, broker, registry, tracked models and other `runtime_data/` intact. The cleanup is a runtime reset, **not** full retraining or a Docker cache purge. If a prerequisite fails, do not force-delete anything; investigate the error.
+The cleanup script removes the `logibridge-data` Docker volume and `runtime_data/demo/` (the operations-centre SQLite database, alert logs and the temporary M3 build), so copy any logs you need first. If the inference container is deployed, it restores M2 through Ansible, then removes the demo helpers and the inference container. Docker images, Git files, the broker, the registry and the tracked models are left alone. It does not retrain anything or clear the Docker build cache.
 
-## Easiest full demo
+## Full demo
 
 ```bash
 bash demo/demo_runner.sh all
+bash demo/demo_runner.sh all --auto     # no pauses between stages (sudo prompts remain)
 ```
 
-The script prints and executes each stage and pauses for narration. For execution without narration pauses (sudo prompts remain):
+The runner prints and runs each stage and pauses between them. It does not delete Docker images, caches, `/opt/logibridge`, SQLite files or existing alerts; use `demo_cleanup.sh` for that. Generated data goes to `runtime_data/demo/`, which is ignored by Git.
+
+### Individual stages
 
 ```bash
-bash demo/demo_runner.sh all --auto
-```
-
-The **runner** does not wipe Docker images, prune caches, delete `/opt/logibridge`, clear existing SQLite files, reset Git files, or remove existing alerts. Use `demo_cleanup.sh` first when old runtime results must be cleared. It creates generated demo data under **`runtime_data/demo/`**, which should stay out of Git. This demo is repeatable but existing stored alerts are not automatically erased.
-
-### Manual segments for recording
-
-```bash
-bash demo/demo_runner.sh prep   # verify Docker, registry, broker, baseline image
-bash demo/demo_runner.sh 1      # architecture and repo
+bash demo/demo_runner.sh prep   # check Docker, registry, broker, baseline image
+bash demo/demo_runner.sh 1      # architecture and repository
 bash demo/demo_runner.sh 2      # MQTT, simulator and preprocessing check
-bash demo/demo_runner.sh 3      # read-only 3-model validation comparison
+bash demo/demo_runner.sh 3      # validation results for the three models
 bash demo/demo_runner.sh 4      # build M3 image 1.1, push, compare OTA layers
-bash demo/demo_runner.sh 5      # Ansible deploy M3, repeat for changed=0
-bash demo/demo_runner.sh 6      # Docker MQTT -> inference -> PSI -> offline/ACK demo
-bash demo/demo_runner.sh 7      # benchmark + full/canary/shadow economics
+bash demo/demo_runner.sh 5      # Ansible deploy of M3, then a repeat run (changed=0)
+bash demo/demo_runner.sh 6      # MQTT -> inference -> PSI -> offline alerts -> ACK
+bash demo/demo_runner.sh 7      # benchmark and full/canary/shadow cost comparison
 ```
 
-**Run section 4 before 5, and 5 before 6** (or use `all`). Section 6 runs at 1× real time for 1,260 seconds so that PSI is evaluated every 60 real seconds and the full 100-prediction recovery can be shown. It stops the *demo* operations-centre container to simulate an outage, but **never stops Mosquitto**; it restarts the centre and checks for HTTP acknowledgement. Results/logs: `runtime_data/demo/simulator.log`, `inference.log`, `drift.log`, `sync.log`, and `ops.sqlite3`.
+Run stage 4 before 5, and 5 before 6. Stage 6 runs in real time for 1,260 seconds so that PSI is computed every 60 seconds and the 100-prediction window can fully recover. It stops the demo operations-centre container to simulate an outage (Mosquitto keeps running), then restarts it and checks that the queued alerts are acknowledged. Logs are written to `runtime_data/demo/` (`simulator.log`, `inference.log`, `drift.log`, `sync.log` and `ops.sqlite3`).
 
-### Verify state and restore proven M2 deployment
+Stage 6 settings: `--anomaly-after 120 --anomaly-until 240 --duration 1260 --speed 1 --seed 42` for the simulator, and `--interval 60 --window 100` for the PSI monitor.
+
+### Status, rollback and stop
 
 ```bash
 bash demo/demo_runner.sh status
@@ -60,42 +55,20 @@ bash demo/demo_runner.sh rollback
 bash demo/demo_runner.sh stop
 ```
 
-`rollback` redeploys **M2 model + M2 reference + image 1.0** through Ansible. `stop` only removes the four demo helper containers; it **does not** stop the registry, broker or Ansible inference container. The M3 model and reference are built in `runtime_data/demo/`, so the tracked M2 files remain unchanged.
+`rollback` redeploys the M2 model, the M2 reference and image 1.0 through Ansible. `stop` removes the four demo helper containers only; the registry, broker and inference container keep running. The M3 model and reference are built in `runtime_data/demo/`, so the tracked M2 files are never changed.
 
-## Architecture and constraints
+## How the pieces connect
 
-- Source samples -> Docker Mosquitto (`mosquitto:1883`) -> Ansible inference container -> Normal/Warning/Critical predictions.
-- PSI monitor subscribes to inference messages using a reference generated for the matching M3 model; model tags include the model SHA-256 prefix.
-- Inference writes alerts into the `logibridge-data` Docker named volume. Store-and-forward sync reads the **same named volume**, retries while the operations centre is down, and records acknowledgments in its SQLite journal.
-- Ops centre records received alerts in `runtime_data/demo/ops.sqlite3`.
-- All benchmarking is **WSL CPU / synthetic data**; the energy figure uses 28 W TDP assumption, not a power meter.
-- The demo creates a second *candidate* image tag `1.1` (M3), not an actual over-the-air cellular transfer to trucks. Docker registry manifest calculations estimate layer reuse.
-- Deployment is local Ansible (`localhost`) and requires Docker Desktop, not remote truck infrastructure.
-- Do not publish `deployment/mosquitto/mosquitto.conf` with anonymous access on public networks. The demo broker has no externally published MQTT port.
+- Simulator, then Docker Mosquitto (`mosquitto:1883`), then the Ansible-deployed inference container, which outputs Normal, Warning or Critical.
+- The PSI monitor subscribes to the inference topic with a reference built for the same M3 model. Inference messages carry the model's SHA-256 prefix so a mismatch is reported.
+- The inference service writes alerts to the `logibridge-data` volume. The sync agent mounts the same volume, retries while the operations centre is down and records acknowledgements in its SQLite journal.
+- The operations centre stores received alerts in `runtime_data/demo/ops.sqlite3`.
+- Image 1.1 is a second image tag in the local registry; the bandwidth figure comes from comparing registry layers, not from a cellular transfer.
+- Ansible deploys to `localhost` only.
+- The broker configuration allows anonymous access and should not be used on a public network.
 
-## Results and model identity
+## Models and evidence
 
-This repository ZIP tracks M2 as `inference/model.tflite`; the checked-in `monitoring/reference_dist.json` identifies M3, so do not pair that tracked reference directly with a standalone M2 deployment. The guided runner creates a model-matched reference for M3 before installing it, and its rollback path selects a matching M2 reference. Guided Stage 4 prepares M3 separately, Stage 5 deploys M3 (SHA-256 prefix `84ff2345`) with its own PSI reference and image `1.1`, and Stage 6 tests live inference plus offline HTTP retry. Check `docker logs logibridge-inference`, `sha256sum /opt/logibridge/model.tflite`, and `runtime_data/demo/ops.sqlite3` to verify the run. The latest measured benchmark numbers live in `optimisation/results/benchmark_results.csv` and are regenerated by Stage 7; historic report values may differ.
+The repository tracks M2 as `inference/model.tflite`, while `monitoring/reference_dist.json` is the M3 reference. The runner builds a matching M3 reference before deploying M3 (SHA-256 prefix `84ff2345`), and rollback uses a matching M2 reference. To check a run, use `docker logs logibridge-inference`, `sha256sum /opt/logibridge/model.tflite` and `runtime_data/demo/ops.sqlite3`.
 
-**Stage 6** now runs at real-time 1× speed with PSI evaluations every 60 seconds. The final run demonstrated a full 100-prediction window and PSI recovery to 0.000. The operations-centre outage is a container-based simulation and is not a cellular-modem test.
-
-## Updating evidence after each new full run
-
-Stage 7 overwrites `optimisation/results/benchmark_results.csv` and `optimisation/results/pareto_chart.png`. These are the authoritative per-run timing/energy results. Update any manually maintained benchmark tables in `README.md`, `optimisation/deployment_recommendation.md`, and the final report **after selecting a final run**, not after every practice run.
-
-Stage 4 prints a fresh registry-based M2→M3 OTA layer comparison. Save its terminal output separately if needed; historical `evidence/archive/deployment__ota_bandwidth_m3.txt` is not rewritten by the demo. Stage 6 recreates `runtime_data/demo/` evidence (alert IDs, PSI values and SQLite records can differ); capture evidence before running `demo_cleanup.sh`. OTA strategy calculations remain unchanged as long as their assumed input parameters remain unchanged.
-
-
-## Final real-time configuration and evidence (4 November 2026)
-
-Stage 6 in the submitted runner uses `--anomaly-after 120 --anomaly-until 240 --duration 1260 --speed 1 --seed 42`. The PSI monitor runs at `--interval 60 --window 100`. This is a **real-time 21-minute test**, not the earlier accelerated rehearsal. The full log is at `evidence/latest_run_2026-11-04.txt`.
-
-The full history records a Normal PSI of 0.000, a peak alert of 4.604 and recovery to 0.000 with `n=100`. Inference logs show Critical and subsequent Normal output. Two queued Critical alerts were acknowledged and stored after restarting the operations-centre container.
-
-`docker logs --tail 18` merely limits displayed log lines; the final runner displays the full PSI sequence and selected Critical/Normal/door events. For submission, do not change the sampling rate, preprocessing step, 60-second PSI period or 100-prediction buffer.
-
-Do not rerun cleanup solely to refresh documentation: it deletes demo runtime state. Preserve the included verified log and generated benchmark CSV.
-
-## Latest successful run (4 November 2026)
-
-We completed the full run at 1× for 1,260 seconds, using 60-second PSI checks over 100 predictions. The PSI peaked at 4.604 and recovered to 0.000 with `n=100`. Two offline Critical alerts were acknowledged after reconnecting the operations centre. The complete captured output is in `evidence/latest_run_2026-11-04.txt`. Our latest CPU benchmark places both M1 and M3 on the Pareto frontier; the new numbers are in `optimisation/results/benchmark_results.csv`.
+Stage 7 rewrites `optimisation/results/benchmark_results.csv` and `pareto_chart.png`. Stage 4 prints the registry layer comparison for M2 to M3. The run used in our report is in `evidence/latest_run_2026-11-04.txt`; in it PSI went from 0.000 to a peak of 4.604 and back to 0.000 with `n=100`, and two queued Critical alerts were acknowledged after the operations centre restarted.
