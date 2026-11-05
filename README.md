@@ -1,6 +1,6 @@
 # LogiEdge: Edge AI for Cold-Chain Trucks
 
-AIML ZG535 Machine Learning on Edge, mini-project (EC-I), Group 15.
+AIMLZG535 Machine Learning on Edge, mini-project (EC-I), Group 15.
 
 | BITS ID | Name | Contributions |
 |---|---|---|
