@@ -4,10 +4,10 @@ AIML ZG535 Machine Learning on Edge, mini-project (EC-I), Group 15.
 
 | BITS ID | Name | Contributions |
 |---|---|---|
-| 2025ae05381 | Disha Shetty H | Equal (25%) |
-| 2025ae05382 | Murali Krishna Sai Garisapati | Equal (25%) |
-| 2025ae05420 | Rajan Yadav | Equal (25%) |
-| 2025ae05680 | Santosh Kumar Behera | Equal (25%) |
+| 2025ae05381 | Disha Shetty H | 100% |
+| 2025ae05382 | Murali Krishna Sai Garisapati | 100% |
+| 2025ae05420 | Rajan Yadav | 100% |
+| 2025ae05680 | Santosh Kumar Behera | 100% |
 
 LogiEdge (repository name: logibridge) classifies simulated refrigerated-truck conditions as Normal, Warning or Critical from temperature and vibration features, on the truck itself. Door transitions are logged separately. Inference and alert logging keep working while the operations centre is unreachable, and queued alerts are delivered when it comes back.
 
